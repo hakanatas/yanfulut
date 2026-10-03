@@ -228,11 +228,23 @@ function showTuner() {
 }
 
 // --------------------------------------------------------------------- Başlat
-document.getElementById('reset-progress')?.addEventListener('click', () => {
-  if (confirm('Tüm ilerlemen silinsin mi?')) {
-    progress.reset();
-    route();
+// Sıfırlama iki tıklamayla onaylanır (bazı gömülü görünümlerde confirm() çalışmaz)
+const resetBtn = document.getElementById('reset-progress');
+let resetTimer = null;
+resetBtn?.addEventListener('click', () => {
+  if (!resetTimer) {
+    resetBtn.textContent = 'Emin misin? Silmek için tekrar tıkla';
+    resetTimer = setTimeout(() => {
+      resetTimer = null;
+      resetBtn.textContent = 'İlerlemeyi sıfırla';
+    }, 4000);
+    return;
   }
+  clearTimeout(resetTimer);
+  resetTimer = null;
+  resetBtn.textContent = 'İlerleme sıfırlandı';
+  progress.reset();
+  route();
 });
 window.addEventListener('hashchange', route);
 route();
