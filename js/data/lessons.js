@@ -16,13 +16,27 @@
 
 import {
   text, arrow, air, underline, circleMark, flute, staff, mascot, bubble, bottle,
-  embouchure, person, belly, sparkle, musicNote, check, cross, metronome, noteSymbol, group,
+  embouchure, person, belly, sparkle, musicNote, check, cross, metronome, noteSymbol, group, musicStand, el,
 } from '../art.js';
 
 const title = (str, x = 400, y = 70) => text(str, x, y, { size: 50, weight: 700 }) + underline(x - str.length * 11, y + 14, str.length * 22);
+/** Nota süresini gösteren vuruş noktaları (yarım vuruş = yarım daire) */
+const beatDots = (cx, beats) => {
+  const n = Math.max(1, Math.ceil(beats));
+  const gap = 18;
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    const bx = cx - ((n - 1) * gap) / 2 + i * gap;
+    out += beats < 1
+      ? el('path', { d: `M${bx - 7} 236 a7 7 0 0 1 14 0Z`, class: 'ink fill-coral' })
+      : el('circle', { cx: bx, cy: 232, r: 7, class: 'ink fill-coral' });
+  }
+  return group(out);
+};
+
 const outro = (msg, say) => ({
   clear: true,
-  draw: mascot({ x: 250, y: 300, s: 1.4, mood: 'wink', wave: true }) + bubble(msg, 340, 110, { w: 380, h: 80, size: 30 }) + sparkle(680, 300) + musicNote(600, 360, 1.2),
+  draw: mascot({ x: 250, y: 275, s: 1.4, mood: 'wink', wave: true }) + bubble(msg, 340, 90, { w: 380, h: 80, size: 30 }) + sparkle(680, 280) + sparkle(720, 240, 0.6) + musicNote(600, 340, 1.2) + musicNote(470, 250, 0.8, 'stroke-coral'),
   say,
 });
 
@@ -34,7 +48,7 @@ export const LESSONS = [
     scenes: [
       {
         clear: true,
-        draw: mascot({ x: 200, y: 290, s: 1.5, wave: true }) + bubble('Merhaba!', 300, 90, { w: 230, h: 76, size: 34 }),
+        draw: mascot({ x: 200, y: 268, s: 1.5, wave: true }) + bubble('Merhaba!', 300, 70, { w: 230, h: 76, size: 34 }),
         say: 'Merhaba! Ben Nota. Bugün birlikte yan flüt çalmayı öğreneceğiz.',
       },
       {
@@ -63,8 +77,8 @@ export const LESSONS = [
       },
       {
         clear: true,
-        draw: person(270, 150, 1.1) + arrow(540, 150, 700, 150) + text('sağa doğru', 620, 125, { size: 28, cls: 'coral-fill' }),
-        say: 'Flütü yere paralel ve sağ tarafa doğru tutarız. Adı da buradan gelir: yan flüt!',
+        draw: person(470, 120, 1) + musicStand(690, 120, 0.85) + arrow(300, 92, 150, 108, { bend: 0.1, cls: 'stroke-coral thick' }) + text('sağ tarafına doğru', 225, 76, { size: 28, cls: 'coral-fill' }),
+        say: 'Flütü yere paralel ve sağ tarafına doğru tutarız. Karşıdan bakınca flüt sola uzanıyor gibi görünür. Adı da buradan gelir: yan flüt!',
         check: {
           type: 'quiz',
           q: 'Yan flüt hangi yöne doğru tutulur?',
@@ -84,7 +98,7 @@ export const LESSONS = [
     scenes: [
       {
         clear: true,
-        draw: bottle(300, 130, 1.1) + air(90, 120, 180),
+        draw: mascot({ x: 110, y: 150, s: 0.7, mood: 'blow' }) + bottle(330, 120, 1.05) + air(150, 118, 160),
         say: 'Boş bir şişenin ağzına yandan üflediğinde "huuu" diye bir ses çıktığını hiç fark ettin mi?',
       },
       {
@@ -94,16 +108,16 @@ export const LESSONS = [
       },
       {
         clear: true,
-        draw: embouchure(250, 140, 1.4) + text('dudaklar', 220, 90, { size: 26 }) + text('flütün kesiti', 470, 360, { size: 26 }),
+        draw: embouchure(150, 30, 1.1) + text('dudaklar', 560, 150, { size: 26 }) + arrow(510, 156, 418, 200, { bend: -0.15 }) + text('flütün kesiti', 650, 300, { size: 26 }) + arrow(580, 296, 484, 300, { bend: 0.1 }) + text('üfleme deliği', 620, 250, { size: 22, cls: 'muted-fill' }) + arrow(560, 250, 428, 254, { bend: -0.1, cls: 'ink thin' }),
         say: 'Dudaklarını hafifçe gerip "pu" der gibi küçük bir açıklık bırak. Yanakların şişmesin.',
       },
       {
         draw:
-          arrow(310, 158, 438, 158, { cls: 'stroke-sky thick' }) +
-          arrow(440, 158, 452, 210, { cls: 'stroke-sky thick' }) +
-          arrow(440, 158, 560, 128, { cls: 'stroke-sky thick' }) +
-          text('yarısı içeri', 600, 250, { size: 26, cls: 'sky-fill' }) +
-          text('yarısı dışarı', 650, 115, { size: 26, cls: 'sky-fill' }),
+          arrow(392, 214, 422, 248, { cls: 'stroke-sky thick' }) +
+          arrow(424, 252, 428, 296, { cls: 'stroke-sky thick' }) +
+          arrow(426, 250, 520, 214, { cls: 'stroke-sky thick' }) +
+          text('yarısı içeri', 340, 340, { size: 26, cls: 'sky-fill' }) +
+          text('yarısı dışarı', 600, 205, { size: 26, cls: 'sky-fill' }),
         say: 'Hava akımı deliğin karşı kenarına çarpar ve ikiye ayrılır: yarısı flütün içine, yarısı dışarıya gider. Ses bu titreşimden doğar.',
         check: {
           type: 'quiz',
@@ -115,7 +129,7 @@ export const LESSONS = [
       },
       {
         clear: true,
-        draw: flute({ x: 80, y: 200, w: 640, highlight: ['head', 'hole'] }) + text('Önce sadece baş kısmıyla dene', 400, 100, { size: 34 }) + air(30, 150, 100, { lines: 2 }),
+        draw: flute({ x: 80, y: 220, w: 640, highlight: ['head', 'hole'] }) + text('Önce sadece baş kısmıyla dene', 400, 90, { size: 34 }) + mascot({ x: 140, y: 140, s: 0.55, mood: 'blow' }) + air(166, 148, 40, { lines: 2, gap: 8 }) + arrow(206, 160, 178, 202, { cls: 'stroke-sky thick' }),
         say: 'Şimdi sıra sende! Önce sadece baş kısmını al, dudaklığı alt dudağının hemen altına yasla ve uzun, sakin bir ses çıkarmayı dene.',
         check: { type: 'listen-any', holdMs: 1000 },
       },
@@ -130,18 +144,22 @@ export const LESSONS = [
     scenes: [
       {
         clear: true,
-        draw: belly(240, 70, 1.2) + arrow(300, 238, 380, 238) + arrow(180, 238, 100, 238) + text('karın balonu', 520, 245, { size: 30, cls: 'coral-fill' }),
+        draw:
+          belly(240, 74, 1.2) + arrow(296, 295, 370, 295) + arrow(184, 295, 110, 295) +
+          text('akciğerler', 500, 176, { size: 28 }) + arrow(430, 170, 318, 190, { bend: 0.1 }) +
+          text('diyafram', 500, 236, { size: 28, cls: 'teal-fill' }) + arrow(440, 232, 316, 246, { bend: 0.1 }) +
+          text('karın balonu', 500, 304, { size: 30, cls: 'coral-fill' }),
         say: 'Flüt çalarken nefesimizi göğsümüze değil, karnımıza alırız. Karnını bir balon gibi düşün.',
       },
       {
-        draw: cross(180, 110) + cross(300, 110) + text('omuzlar kalkmasın', 540, 120, { size: 30 }),
+        draw: cross(160, 126) + cross(320, 126) + text('omuzlar kalkmasın', 560, 110, { size: 30 }),
         say: 'Nefes alırken omuzların kalkmasın. Karnın şişsin, sonra havayı yavaş yavaş ve kontrollü bırak.',
         check: { type: 'breath', inhale: 4, exhale: 8, rounds: 2 },
       },
       {
         clear: true,
         draw:
-          person(220, 130, 1.1) +
+          person(330, 112, 1) +
           check(560, 110) + text('dik dur', 650, 120, { size: 28 }) +
           check(560, 200) + text('omuzlar rahat', 680, 210, { size: 28 }) +
           check(560, 290) + text('dirsekler yanda', 690, 300, { size: 28 }),
@@ -229,7 +247,7 @@ export const LESSONS = [
     scenes: [
       {
         clear: true,
-        draw: title("İnce Do", 400, 70) + flute({ x: 80, y: 230, w: 640, note: 'C5', labels: true, highlight: ['th', 'l1'] }) + cross(342, 312, 0.8),
+        draw: title('İnce Do', 400, 70) + flute({ x: 80, y: 230, w: 640, note: 'C5', labels: true, highlight: ['th', 'l1'] }) + cross(296, 262, 0.6),
         sound: { note: 'C5', dur: 1.6 },
         say: 'Daha ince notalara çıkalım. İnce Do için yalnızca sol işaret parmağın ve sağ serçe parmağın basılı. Başparmağını kaldır!',
         check: { type: 'play', note: 'C5' },
@@ -265,21 +283,21 @@ export const LESSONS = [
     scenes: [
       {
         clear: true,
-        draw: metronome(200, 220, 1.4) + text('1 - 2 - 3 - 4', 520, 230, { size: 48, weight: 700 }),
+        draw: metronome(210, 205, 1.3) + text('1 - 2 - 3 - 4', 530, 220, { size: 48, weight: 700 }) + group([440, 500, 560, 620].map((bx, i) => el('circle', { cx: bx + 12, cy: 262, r: i === 0 ? 9 : 6, class: i === 0 ? 'ink fill-coral' : 'ink paper' })).join('')),
         say: 'Müzikte her notanın bir süresi vardır. Bu süreyi eşit vuruşlarla sayarız: bir, iki, üç, dört.',
       },
       {
         clear: true,
         draw:
-          group(noteSymbol(170, 190, 22, 'whole')) + text('birlik', 170, 290, { size: 30 }) + text('4 vuruş', 170, 330, { size: 24, cls: 'muted-fill' }) +
-          group(noteSymbol(330, 190, 22, 'half')) + text('ikilik', 330, 290, { size: 30 }) + text('2 vuruş', 330, 330, { size: 24, cls: 'muted-fill' }),
+          group(noteSymbol(170, 175, 30, 'whole')) + beatDots(170, 4) + text('birlik', 170, 290, { size: 30 }) + text('4 vuruş', 170, 330, { size: 24, cls: 'muted-fill' }) +
+          group(noteSymbol(330, 175, 30, 'half')) + beatDots(330, 2) + text('ikilik', 330, 290, { size: 30 }) + text('2 vuruş', 330, 330, { size: 24, cls: 'muted-fill' }),
         sound: { melody: ['G4'], bpm: 25 },
         say: 'Birlik nota içi boş bir yuvarlaktır ve dört vuruş sürer. İkilik notanın bir sapı vardır ve iki vuruş sürer.',
       },
       {
         draw:
-          group(noteSymbol(490, 190, 22, 'quarter')) + text('dörtlük', 490, 290, { size: 30 }) + text('1 vuruş', 490, 330, { size: 24, cls: 'muted-fill' }) +
-          group(noteSymbol(640, 190, 22, 'eighth')) + text('sekizlik', 640, 290, { size: 30 }) + text('yarım vuruş', 640, 330, { size: 24, cls: 'muted-fill' }),
+          group(noteSymbol(490, 175, 30, 'quarter')) + beatDots(490, 1) + text('dörtlük', 490, 290, { size: 30 }) + text('1 vuruş', 490, 330, { size: 24, cls: 'muted-fill' }) +
+          group(noteSymbol(640, 175, 30, 'eighth')) + beatDots(640, 0.5) + text('sekizlik', 640, 290, { size: 30 }) + text('yarım vuruş', 640, 330, { size: 24, cls: 'muted-fill' }),
         sound: { melody: ['G4', 'G4', 'G4', 'G4'], bpm: 100 },
         say: 'Dörtlük nota içi dolu ve sapılıdır, bir vuruş sürer. Sekizliğin bir de bayrağı vardır, yarım vuruş sürer.',
         check: {

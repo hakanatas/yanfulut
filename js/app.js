@@ -1,7 +1,7 @@
 // Uygulama: sayfa yönlendirme, ders haritası, parmak tablosu ve akort aleti.
 import { lessonById } from './data/lessons.js';
 import { songById } from './data/songs.js';
-import { ALL_NOTES, longName, shortName, tipOf, KEY_NAMES, fingeringOf, KEYS } from './data/notes.js';
+import { ALL_NOTES, longName, shortName, titleName, tipOf, KEY_NAMES, fingeringOf, KEYS } from './data/notes.js';
 import { LessonPlayer } from './player.js';
 import { DotsGame } from './dots.js';
 import { progress } from './progress.js';
@@ -174,7 +174,7 @@ function showChart(selected = 'B4') {
     const keys = fingeringOf(n);
     detail.innerHTML = `
       <div class="chart-top">
-        <div><h3>${longName(n)}</h3><p class="muted">${tipOf(n)}</p></div>
+        <div><h3>${titleName(n)}</h3><p class="muted">${tipOf(n)}</p></div>
         ${staffSvg(n)}
         <button class="btn primary" data-act="play">🔊 Dinle</button>
       </div>

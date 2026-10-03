@@ -7,7 +7,8 @@ Yan flüt öğrenmek isteyenler için **çizimli, etkileşimli video dersler** v
 ### 1. Çizimli video dersler
 Her ders, tahtaya elle çiziliyormuş gibi beliren sahnelerden oluşan bir "video".
 
-- Sahneler çizgi çizgi çizilir; Türkçe **seslendirme** (tarayıcının Türkçe sesiyle) ve **altyazı** eşlik eder.
+- Sahneler çizgi çizgi çizilir: metal parlaklığı, anahtar kapakları ve milleriyle gerçekçi bir Boehm flütü, yandan yüz profili, akciğer/diyafram çizimi, gölgeler ve kurşun kalem taramaları.
+- Anlatımı **Google Cloud Text-to-Speech** ile üretilmiş doğal bir Türkçe ses (Chirp3-HD) okur; **altyazı** eşlik eder. Duraklatınca ses kaldığı yerden devam eder.
 - Video gibi kullanılır: oynat/duraklat, önceki/sonraki sahne, zaman çizelgesinden istediğin sahneye atlama. Klavyeyle: boşluk tuşu oynatır/duraklatır, ← → sahne değiştirir.
 - **Etkileşimli duraklar** (zaman çizelgesinde sarı elmaslar): video durur ve sırayla şunları yaptırır:
   - **Soru:** çoktan seçmeli bilgi sorusu
@@ -60,12 +61,25 @@ js/sketch.js          Çizim motoru: SVG'leri çizgi çizgi canlandırır
 js/art.js             Çizimler: flüt, porte, maskot, şişe, dudaklar…
 js/dots.js            Nota Noktaları oyunu
 js/audio.js           Flüt benzeri sentezleyici ve mikrofonla perde algılama
-js/voice.js           Türkçe seslendirme (Web Speech API)
+js/voice.js           Seslendirme: önceden üretilmiş Google TTS sesleri, yoksa tarayıcı sesi
+audio/tts/            Google TTS ile üretilmiş anlatım sesleri ve manifest.json
+tools/tts.mjs         Anlatımları Google Cloud Text-to-Speech ile MP3'e çeviren betik
 js/progress.js        İlerleme ve ayarlar
 js/data/notes.js      Notalar, frekanslar ve parmak pozisyonları
 js/data/lessons.js    Ders içerikleri
 js/data/songs.js      Şarkılar ve gizli resimler
+js/data/phrases.js    Seslendirilen kısa cümleler (soru, "Doğru!" vb.)
 ```
+
+## Seslendirme (Google TTS)
+
+Anlatımlar `audio/tts/` klasöründe hazır gelir; uygulama çalışırken internete ya da bir API anahtarına ihtiyaç duymaz. Ders metnini değiştirdiğinizde veya yeni bir ders eklediğinizde sesleri yeniden üretin:
+
+```bash
+GOOGLE_TTS_API_KEY=anahtarınız node tools/tts.mjs
+```
+
+Betik yalnızca eksik cümleleri üretir, artık kullanılmayan dosyaları siler ve `audio/tts/manifest.json` dosyasını günceller. Başka bir ses için `TTS_VOICE=tr-TR-Chirp3-HD-Aoede` gibi bir değer verin (Türkçe sesler: `tr-TR-Chirp3-HD-*`, `tr-TR-Wavenet-*`). API anahtarı yalnızca bu betikte kullanılır, tarayıcıya hiç gönderilmez. Sesi henüz üretilmemiş cümleler için uygulama tarayıcının kendi Türkçe sesine geçer.
 
 ## İçerik ekleme
 
@@ -110,7 +124,7 @@ Kendi çektiğiniz bir videoyu (ya da bir YouTube videosunu) etkileşimli derse 
 ```
 
 ### Yeni bir şarkı
-`js/data/songs.js` içindeki `SONGS` dizisine ekleyin. `notes` notaları (`B4:2` = iki vuruşluk Si), `shape.outline` ise 0–100 aralığında kapalı bir çokgendir. Noktalar çokgenin köşelerine ve kenarlarına otomatik dağıtılır; bu yüzden şarkıdaki nota sayısı köşe sayısından az olmamalıdır.
+`js/data/songs.js` içindeki `SONGS` dizisine ekleyin. `notes` notaları (`B4:2` = iki vuruşluk Si), `shape.outline` ise 0–100 aralığında kapalı bir çokgendir. `shape.details` (göz, kulak, yün kıvrımı…) ve `shape.scene` (çimen, gökyüzü…) resim tamamlanınca sırayla belirir. Noktalar çokgenin köşelerine ve kenarlarına otomatik dağıtılır; bu yüzden şarkıdaki nota sayısı köşe sayısından az olmamalıdır.
 
 ## Tarayıcı desteği
-Güncel Chrome, Edge, Safari ve Firefox. Türkçe seslendirme, işletim sisteminde Türkçe bir ses yüklü olmasına bağlıdır; yoksa dersler altyazıyla devam eder.
+Güncel Chrome, Edge, Safari ve Firefox.

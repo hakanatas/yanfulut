@@ -1,10 +1,12 @@
 // Nota Noktaları: şarkının her notası resmin bir noktası. Doğru notayı çaldıkça
 // sıradaki noktaya çizgi çekilir; şarkı bitince resim tamamlanır.
 import { distributeDots } from './data/songs.js';
-import { longName, midiOf, shortName, noteFromMidi } from './data/notes.js';
+import { longName, midiOf, shortName, noteFromMidi, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playMelody, playChime } from './audio.js';
 import { fluteSvg, staffSvg, h } from './checkpoints.js';
 import { progress } from './progress.js';
+import { say } from './voice.js';
+import { PHRASES } from './data/phrases.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const svgEl = (tag, attrs) => {
@@ -44,6 +46,7 @@ export class DotsGame {
           <div class="dots-board-wrap">
             <svg class="dots-board" viewBox="-6 -6 112 112" role="img" aria-label="Nokta birleştirme resmi">
               <g filter="url(#sketchy)">
+                <g class="dots-scene"></g>
                 <polygon class="dots-fill" points=""></polygon>
                 <g class="dots-lines"></g>
                 <g class="dots-details"></g>
@@ -81,6 +84,7 @@ export class DotsGame {
     this.pointsG = $('.dots-points');
     this.linesG = $('.dots-lines');
     this.detailsG = $('.dots-details');
+    this.sceneG = $('.dots-scene');
     this.fillPoly = $('.dots-fill');
     this.fillPoly.style.fill = this.song.shape.color;
 
@@ -129,6 +133,7 @@ export class DotsGame {
     this.mistakes = 0;
     this.linesG.replaceChildren();
     this.detailsG.replaceChildren();
+    this.sceneG.replaceChildren();
     this.fillPoly.setAttribute('points', '');
     this.fillPoly.classList.remove('show');
     this.$('.dots-board').classList.remove('complete');
@@ -241,7 +246,7 @@ export class DotsGame {
     });
     this.el.querySelector('.chip.current')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
     const n = this.song.notes[i];
-    this.$('.target-name').textContent = n ? longName(n.note) : '🎉';
+    this.$('.target-name').textContent = n ? titleName(n.note) : '🎉';
     this.$('.target-visual').innerHTML = n ? staffSvg(n.note) + fluteSvg(n.note) : '';
     this.$('.hold span').style.width = '0%';
   }
@@ -252,13 +257,23 @@ export class DotsGame {
     this.fillPoly.setAttribute('points', this.dots.map((p) => p.join(',')).join(' '));
     this.fillPoly.classList.add('show');
     this.$('.dots-board').classList.add('complete');
-    for (const d of this.song.shape.details) this.detailsG.appendChild(svgEl('path', { d, class: 'dots-detail' }));
+    // Resmin ayrıntıları ve çevresi (çimen, gökyüzü…) sırayla belirir
+    const addPaths = (target, items, base, delay0) =>
+      items.forEach((item, i) => {
+        const { d, cls = 'plain' } = typeof item === 'string' ? { d: item } : item;
+        const path = svgEl('path', { d, class: `${base} ${cls}` });
+        target.appendChild(path);
+        path.animate([{ opacity: 0 }, { opacity: getComputedStyle(path).opacity }], { duration: 400, delay: delay0 + i * 120, fill: 'both' });
+      });
+    addPaths(this.sceneG, this.song.shape.scene || [], 'dots-scene-part', 200);
+    addPaths(this.detailsG, this.song.shape.details, 'dots-detail', 700);
     this.listener?.stop();
     this.listener = null;
     let stars = 0;
     if (!demo) {
       stars = this.mistakes <= 2 ? 3 : this.mistakes <= 6 ? 2 : 1;
       progress.completeSong(this.song.id, stars);
+      if (progress.settings.voice) say(PHRASES.songDone);
       this.renderStars(progress.songStars(this.song.id));
       playChime();
     }

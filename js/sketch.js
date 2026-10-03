@@ -1,4 +1,5 @@
 // Çizim motoru: SVG parçalarını tahtaya ekler ve elle çiziliyormuş gibi canlandırır.
+import { boardBackdrop } from './art.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const DRAWABLE = 'path, line, circle, ellipse, rect, polyline, polygon';
@@ -42,12 +43,13 @@ export function animateDraw(g, { maxDuration = 4000, startDelay = 0 } = {}) {
   plan.forEach((p, i) => {
     const d = raw[i] * scale;
     const { node } = p;
+    const op = Number(getComputedStyle(node).opacity);
     if (p.isText) {
       animations.push(
         node.animate(
           [
             { opacity: 0, transform: 'translateY(6px)' },
-            { opacity: 1, transform: 'translateY(0)' },
+            { opacity: op, transform: 'translateY(0)' },
           ],
           { duration: Math.max(200, d), delay: t, fill: 'both', easing: 'ease-out' },
         ),
@@ -67,7 +69,7 @@ export function animateDraw(g, { maxDuration = 4000, startDelay = 0 } = {}) {
         animations.push(node.animate([{ fillOpacity: 0 }, { fillOpacity: fo }], { duration: 250, delay: t + d * 0.7, fill: 'both' }));
       }
     } else {
-      animations.push(node.animate([{ opacity: 0 }, { opacity: 1 }], { duration: d, delay: t, fill: 'both' }));
+      animations.push(node.animate([{ opacity: 0 }, { opacity: op }], { duration: d, delay: t, fill: 'both' }));
     }
     t += d * 0.85;
   });
@@ -78,6 +80,10 @@ export function animateDraw(g, { maxDuration = 4000, startDelay = 0 } = {}) {
 export class Board {
   constructor(svg) {
     this.svg = svg;
+    const bg = document.createElementNS(NS, 'g');
+    bg.setAttribute('class', 'board-bg');
+    bg.innerHTML = boardBackdrop();
+    svg.appendChild(bg);
     this.layer = document.createElementNS(NS, 'g');
     this.layer.setAttribute('filter', 'url(#sketchy)');
     svg.appendChild(this.layer);

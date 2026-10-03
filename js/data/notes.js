@@ -108,6 +108,12 @@ export function longName(id) {
   return register + base;
 }
 
+/** Başlıklar için büyük harfle başlayan ad: "İnce Re" */
+export function titleName(id) {
+  const n = longName(id);
+  return n.charAt(0).toLocaleUpperCase('tr') + n.slice(1);
+}
+
 export function fingeringOf(id) {
   const keys = FINGERINGS[id];
   if (!keys) throw new Error(`Parmak pozisyonu yok: ${id}`);

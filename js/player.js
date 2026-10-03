@@ -2,7 +2,7 @@
 //  1) Çizimli sahneler: tahtaya çizim + anlatım (seslendirme/altyazı) + duraklar
 //  2) Gerçek video (mp4/webm): belirli saniyelerde duran ve soru soran video
 import { Board } from './sketch.js';
-import { speak, stopSpeaking, estimateMs, canSpeak } from './voice.js';
+import { narrate, stopSpeaking, estimateMs, canSpeak, preload, voiceReady } from './voice.js';
 import { playNote, playMelody } from './audio.js';
 import { runCheckpoint, h } from './checkpoints.js';
 import { progress } from './progress.js';
@@ -168,6 +168,7 @@ export class LessonPlayer {
     this.paused = false;
     this.setPlayingUI(true);
     this.board.resume();
+    this.narration?.resume();
   }
 
   pause() {
@@ -180,10 +181,7 @@ export class LessonPlayer {
     this.setPlayingUI(false);
     this.board.pause();
     this.sound?.stop();
-    if (this.speaking) {
-      this.speechInterrupted = true;
-      stopSpeaking();
-    }
+    this.narration?.pause();
   }
 
   jump(i) {
@@ -236,6 +234,7 @@ export class LessonPlayer {
     if (sc.clear) this.board.clear();
     const drawMs = this.board.draw(sc.draw, { maxDuration: Math.max(1800, estimateMs(sc.say || '') * 0.8) });
     this.caption.textContent = sc.say || '';
+    preload(this.items.slice(i + 1, i + 3).map((x) => x.say));
     const est = Math.max(drawMs, estimateMs(sc.say || ''));
     let elapsed = 0;
     const progressTimer = setInterval(() => {
@@ -273,28 +272,22 @@ export class LessonPlayer {
     });
   }
 
-  untilResumed(token) {
-    return this.wait(1, token);
-  }
-
   async narrate(text, token) {
     if (!text) return true;
-    if (!progress.settings.voice || !canSpeak()) return this.wait(estimateMs(text, progress.settings.rate), token);
-    for (;;) {
-      if (!(await this.untilResumed(token))) return false;
-      if (!progress.settings.voice) return this.wait(estimateMs(text) * 0.5, token);
-      this.speaking = true;
-      this.speechInterrupted = false;
-      const t0 = performance.now();
-      const ok = await speak(text, { rate: progress.settings.rate });
-      this.speaking = false;
-      if (token.cancelled) return false;
-      if (this.speechInterrupted) continue; // duraklatıldı: devam edince cümleyi baştan oku
-      // Ses motoru hiç konuşamadıysa altyazının okunabilmesi için bekle
-      const spoke = performance.now() - t0;
-      if (!ok || spoke < 400) return this.wait(Math.max(0, estimateMs(text) - spoke), token);
-      return true;
-    }
+    const { voice, rate } = progress.settings;
+    if (!voice || !canSpeak()) return this.wait(estimateMs(text, rate), token);
+    await voiceReady;
+    if (token.cancelled) return false;
+    const t0 = performance.now();
+    const handle = narrate(text, { rate });
+    this.narration = handle;
+    if (this.paused) handle.pause();
+    const ok = await handle.done;
+    if (this.narration === handle) this.narration = null;
+    if (token.cancelled) return false;
+    // Okunamadıysa (ses yok, seslendirme kapatıldı) altyazı okunabilsin diye bekle
+    if (!ok) return this.wait(Math.max(0, estimateMs(text, rate) - (performance.now() - t0)), token);
+    return true;
   }
 
   finished() {

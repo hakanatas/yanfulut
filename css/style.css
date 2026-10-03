@@ -18,6 +18,17 @@
   --wood: #e0b07a;
   --line: #e9dcc0;
   --shadow: 0 3px 0 var(--line), 0 10px 30px rgb(80 60 20 / 8%);
+  --metal-hi: #ffffff;
+  --metal-lo: #a9b6c4;
+  --coral-hi: #ffb3a8;
+  --skin-hi: #ffeadb;
+  --skin-lo: #e9a98a;
+  --ink-hi: #5c5870;
+  --wood-lo: #b77d45;
+  --glass: #cfe6f5;
+  --glass-hi: #f4fbff;
+  --glass-lo: #94bcd8;
+  --leaf: #7cc47f;
   --radius: 18px;
   --font-ui: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
   --font-hand: 'Patrick Hand', 'Comic Sans MS', 'Chalkboard SE', cursive;
@@ -39,6 +50,17 @@
     --sun-soft: #5b5230;
     --line: #2c4038;
     --shadow: 0 3px 0 #0f1a16, 0 10px 30px rgb(0 0 0 / 25%);
+    --metal-hi: #8aa79b;
+    --metal-lo: #2a3f37;
+    --coral-hi: #ff9d8f;
+    --skin-hi: #8c6c5a;
+    --skin-lo: #4f3a2f;
+    --ink-hi: #ffffff;
+    --wood-lo: #4e381f;
+    --glass: #3b6070;
+    --glass-hi: #6c97a8;
+    --glass-lo: #24404b;
+    --leaf: #4f8f58;
     color-scheme: dark;
   }
 }
@@ -57,6 +79,17 @@
   --sun-soft: #5b5230;
   --line: #2c4038;
   --shadow: 0 3px 0 #0f1a16, 0 10px 30px rgb(0 0 0 / 25%);
+  --metal-hi: #8aa79b;
+  --metal-lo: #2a3f37;
+  --coral-hi: #ff9d8f;
+  --skin-hi: #8c6c5a;
+  --skin-lo: #4f3a2f;
+  --ink-hi: #ffffff;
+  --wood-lo: #4e381f;
+  --glass: #3b6070;
+  --glass-hi: #6c97a8;
+  --glass-lo: #24404b;
+  --leaf: #4f8f58;
   color-scheme: dark;
 }
 
@@ -153,8 +186,47 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .shirt { fill: var(--shirt); }
 .wood { fill: var(--wood); }
 .glow { fill: var(--sun-soft); }
-.key.up { fill: var(--paper); }
-.key.down { fill: var(--coral); }
+.key.up { fill: url(#g-cup); }
+.key.down { fill: url(#g-pressed); }
+.metal-g { fill: url(#g-metal); }
+.cup { fill: url(#g-cup); }
+.glass-g { fill: url(#g-glass); }
+.skin-g { fill: url(#g-skin); }
+.head-g { fill: url(#g-head); }
+.wood-g { fill: url(#g-wood); }
+.hatch { fill: url(#hatch); stroke: none; }
+.hatch-x { fill: url(#hatch-x); stroke: none; }
+.hatch-line { stroke: var(--ink); stroke-width: 0.9; opacity: 0.45; }
+.shade { fill: var(--ink); opacity: 0.1; stroke: none; }
+.shine { fill: none; stroke: var(--metal-hi); stroke-width: 2.4; stroke-linecap: round; opacity: 0.85; }
+.shine-fill { fill: #fff; opacity: 0.5; stroke: none; }
+.fill-leaf { fill: var(--leaf); }
+.fill-sun { fill: var(--sun); }
+.fill-sky { fill: var(--sky); }
+.fill-lilac { fill: var(--lilac); }
+.fill-ink { fill: var(--ink); }
+.fill-skin-lo { fill: var(--skin-lo); }
+.limb-o { stroke: var(--ink); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.limb-i, .limb-i.shirt { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.limb-i.shirt { stroke: var(--shirt); }
+.limb-i.skin-st { stroke: var(--skin); }
+.print { fill: none; stroke: var(--paper); stroke-width: 1.1; stroke-linecap: round; opacity: 0.85; }
+.board-bg .staff-deco { stroke: var(--ink); stroke-width: 1.2; fill: none; opacity: 0.08; }
+.board-bg .deco { fill: var(--ink); opacity: 0.07; stroke: none; }
+.st-metal { stop-color: var(--metal); }
+.st-metal-hi { stop-color: var(--metal-hi); }
+.st-metal-lo { stop-color: var(--metal-lo); }
+.st-coral { stop-color: var(--coral); }
+.st-coral-hi { stop-color: var(--coral-hi); }
+.st-glass { stop-color: var(--glass); }
+.st-glass-hi { stop-color: var(--glass-hi); }
+.st-glass-lo { stop-color: var(--glass-lo); }
+.st-skin { stop-color: var(--skin); }
+.st-skin-hi { stop-color: var(--skin-hi); }
+.st-ink { stop-color: var(--ink); }
+.st-ink-hi { stop-color: var(--ink-hi); }
+.st-wood { stop-color: var(--wood); }
+.st-wood-lo { stop-color: var(--wood-lo); }
 .stroke-coral, .stroke-teal, .stroke-sky, .stroke-sun, .stroke-paper {
   stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round;
 }
@@ -337,7 +409,13 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .dots-line { stroke: var(--ink); stroke-width: 1; stroke-linecap: round; }
 .dots-fill { opacity: 0; transition: opacity 1.2s; stroke: none; }
 .dots-fill.show { opacity: 1; }
-.dots-detail { fill: none; stroke: var(--ink); stroke-width: 1; stroke-linecap: round; }
+.dots-detail, .dots-scene-part { stroke: var(--ink); stroke-width: 0.7; stroke-linecap: round; stroke-linejoin: round; }
+.dots-detail.plain, .dots-scene-part.plain { fill: none; stroke-width: 0.9; }
+.dots-detail.shine { fill: none; stroke: #fff; stroke-width: 1.8; opacity: 0.55; }
+.dots-detail.stroke-paper-thin { fill: none; stroke: var(--paper); stroke-width: 0.8; }
+.dots-detail.fill-lilac-dark { fill: color-mix(in srgb, var(--lilac) 72%, var(--ink)); }
+.dots-scene-part.faint { fill: none; opacity: 0.25; }
+.dots-scene-part.night { fill: color-mix(in srgb, var(--sky) 22%, var(--paper)); stroke: none; }
 .dots-board.complete .dot text { display: none; }
 .dots-board.complete .dot circle { r: 1; }
 .dots-done {

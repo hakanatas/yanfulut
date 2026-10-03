@@ -1,7 +1,12 @@
 // Videoyu durduran etkileşimli duraklar: soru, nota çalma, ses tutma, nefes egzersizi.
 import { flute, staff } from './art.js';
-import { longName, midiOf, shortName } from './data/notes.js';
+import { longName, midiOf, shortName, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playChime } from './audio.js';
+import { say, stopSpeaking } from './voice.js';
+import { progress } from './progress.js';
+import { PHRASES, checkpointPrompt } from './data/phrases.js';
+
+const voiceSay = (text) => progress.settings.voice && say(text, { rate: progress.settings.rate });
 
 export const h = (html) => {
   const t = document.createElement('template');
@@ -10,8 +15,8 @@ export const h = (html) => {
 };
 
 export function fluteSvg(note, { highlight = [] } = {}) {
-  return `<svg class="mini-flute" viewBox="0 0 400 100" role="img" aria-label="${longName(note)} parmak pozisyonu">
-    <g filter="url(#sketchy-sm)">${flute({ x: 20, y: 42, w: 360, note, highlight })}</g></svg>`;
+  return `<svg class="mini-flute" viewBox="0 0 680 130" role="img" aria-label="${longName(note)} parmak pozisyonu">
+    <g filter="url(#sketchy-sm)">${flute({ x: 20, y: 62, w: 640, note, highlight })}</g></svg>`;
 }
 
 export function staffSvg(note) {
@@ -41,9 +46,11 @@ export function runCheckpoint(container, check) {
   };
   impl(card, check, { finish, onCleanup: (fn) => cleanups.push(fn) });
   card.querySelector('button, [tabindex]')?.focus();
+  voiceSay(checkpointPrompt(check));
   return {
     done,
     cancel() {
+      stopSpeaking();
       cleanups.forEach((fn) => fn());
       cleanups.length = 0;
       container.hidden = true;
@@ -70,7 +77,8 @@ function quiz(card, c, { finish }) {
         btn.classList.add('right');
         card.querySelectorAll('.opt').forEach((b) => (b.disabled = true));
         playChime();
-        fb.innerHTML = `${successBlock('Doğru!')} <span>${c.explain || ''}</span>`;
+        voiceSay(PHRASES.correct);
+        fb.innerHTML = `${successBlock(PHRASES.correct)} <span>${c.explain || ''}</span>`;
         const next = h('<button class="btn primary">Devam ▶</button>');
         next.addEventListener('click', () => finish({ skipped: false }));
         card.appendChild(next);
@@ -78,7 +86,8 @@ function quiz(card, c, { finish }) {
       } else {
         btn.classList.add('wrong');
         btn.disabled = true;
-        fb.textContent = 'Hmm, tam değil. Bir daha dene!';
+        fb.textContent = PHRASES.tryAgain;
+        voiceSay(PHRASES.tryAgain);
       }
     }),
   );
@@ -118,7 +127,7 @@ function micPanel(card, onCleanup, { onFrame }) {
 function playCheck(card, c, { finish, onCleanup }) {
   card.innerHTML = `
     <div class="cp-tag">Şimdi sen çal</div>
-    <h3 class="cp-title big">${longName(c.note)}</h3>
+    <h3 class="cp-title big">${titleName(c.note)}</h3>
     <div class="cp-visual">${staffSvg(c.note)}${fluteSvg(c.note)}</div>
     <div class="cp-actions">
       <button class="btn" data-act="listen">🔊 Dinle</button>
@@ -132,6 +141,7 @@ function playCheck(card, c, { finish, onCleanup }) {
     onProgress: (p) => mic.setHold(p),
     onMatch: () => {
       playChime();
+      voiceSay(PHRASES.great);
       fb.innerHTML = successBlock(`Harika! Bu bir ${longName(c.note)}!`);
       setTimeout(() => finish({ skipped: false }), 1400);
     },
@@ -184,6 +194,7 @@ function listenAny(card, c, { finish, onCleanup }) {
         if (p >= 1) {
           matched = true;
           playChime();
+          voiceSay(PHRASES.great);
           fb.innerHTML = successBlock('İşte bu! Flüt sesi!');
           setTimeout(() => finish({ skipped: false }), 1400);
         }
