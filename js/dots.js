@@ -3,7 +3,7 @@
 import { distributeDots } from './data/songs.js';
 import { longName, midiOf, shortName, noteFromMidi, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playMelody, playChime } from './audio.js';
-import { fluteSvg, staffSvg, h } from './checkpoints.js';
+import { fluteSvg, staffSvg, h, heardText } from './checkpoints.js';
 import { progress } from './progress.js';
 import { say } from './voice.js';
 import { PHRASES } from './data/phrases.js';
@@ -167,15 +167,17 @@ export class DotsGame {
       status.textContent = mode === 'touch' ? 'Sıradaki notanın düğmesine dokun.' : mode === 'demo' ? 'Dinle ve resmin çizilişini izle…' : 'Başlamak için bir mod seç.';
     }
     if (mode === 'mic') {
+      // Şarkıda bir oktav yukarı/aşağı çalınan nota da kabul edilir (yeni başlayanlar sık sık üst oktava kayar)
       this.matcher = new NoteMatcher({
         holdMs: 220,
+        octaveOk: true,
         onProgress: (p) => (this.$('.hold span').style.width = `${p * 100}%`),
-        onMatch: (midi) => this.input(midi),
+        onMatch: (midi, info) => this.input(midi, info),
         onWrong: (frame) => this.input(frame.midi),
       });
       this.matcher.setTarget(this.targetMidi());
       this.listener = new PitchListener((f) => {
-        status.textContent = f.note ? `Duyulan: ${shortName(f.note)}` : 'Dinliyorum… sıradaki notayı çal.';
+        status.textContent = f.note ? heardText(f, this.targetMidi(), { octaveOk: true }) : 'Dinliyorum… sıradaki notayı çal.';
         this.matcher.feed(f);
       });
       try {
@@ -202,17 +204,17 @@ export class DotsGame {
   }
 
   /** Bir nota girdisi (mikrofon ya da dokunma) */
-  input(midi) {
+  input(midi, info) {
     if (this.index >= this.song.notes.length) return;
     const fb = this.$('.cp-feedback');
     if (midi === this.targetMidi()) {
-      fb.textContent = '';
+      fb.textContent = info?.octave ? 'Bir oktav farklı çaldın ama nota doğru, kabul! 👍' : '';
       this.advance(this.index);
       if (this.mode === 'mic' && this.matcher) this.matcher.setTarget(this.targetMidi());
     } else {
       this.mistakes++;
       const target = this.song.notes[this.index].note;
-      fb.textContent = `Bu ${shortName(noteFromMidi(midi))} oldu, sıradaki nota ${longName(target)}.`;
+      fb.textContent = `Bu ${longName(noteFromMidi(midi))} oldu, sıradaki nota ${longName(target)}.`;
       const cur = this.dotEls[this.index];
       cur.classList.remove('shake');
       void cur.getBBox();

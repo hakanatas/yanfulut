@@ -28,6 +28,8 @@ Maskotumuz **Nota** (yüzü olan bir sekizlik nota) dersler boyunca eşlik eder.
 | Neşeye Övgü | Sol, La, Si, Do, Re | Fil |
 | Daha Dün Annemizin | Sol, La, Si, Do, Re, Mi | Yıldız |
 
+Mikrofon, hedef notaya ±70 sent yakınlığı doğru sayar; yeni başlayanların biraz tiz/pes çalması (ve La=442–443 akortlu flütler) yanlış nota sayılmaz, bunun yerine akort önerisi gösterilir. Şarkılarda bir oktav kayan nota da kabul edilir. Uygulama kendisi konuşurken ya da örnek nota çalarken mikrofon dinlemeyi bekletir.
+
 Üç oyun modu var: **Flütle çal** (mikrofon), **Dokunarak çal** (ekrandaki nota düğmeleri, flütü yanında olmayanlar için) ve **Dinle ve izle** (ezgiyi çalıp resmi kendisi çizer). Hata sayısına göre 1 ile 3 arasında yıldız kazanılır.
 
 ### 3. Yardımcı araçlar

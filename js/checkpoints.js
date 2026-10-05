@@ -1,7 +1,7 @@
 // Videoyu durduran etkileşimli duraklar: soru, nota çalma, ses tutma, nefes egzersizi.
 import { flute, staff } from './art.js';
-import { longName, midiOf, shortName, titleName } from './data/notes.js';
-import { PitchListener, NoteMatcher, playNote, playChime } from './audio.js';
+import { longName, midiOf, titleName } from './data/notes.js';
+import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget } from './audio.js';
 import { say, stopSpeaking } from './voice.js';
 import { progress } from './progress.js';
 import { PHRASES, checkpointPrompt } from './data/phrases.js';
@@ -94,7 +94,23 @@ function quiz(card, c, { finish }) {
 }
 
 /** Mikrofonu başlatan ve durum/göstergeyi yöneten ortak parça */
-function micPanel(card, onCleanup, { onFrame }) {
+/** Akort geri bildirimi: ±25 sentten küçük sapmalar için boş */
+export function tuningAdvice(cents) {
+  if (Math.abs(cents) <= 25) return '';
+  return cents > 0
+    ? `Ses biraz tiz (+${cents} sent): havayı biraz yumuşat ya da flütün baş kısmını hafifçe dışarı çek.`
+    : `Ses biraz pes (${cents} sent): havayı biraz hızlandır ve dudak açıklığını küçült.`;
+}
+
+/** Mikrofondan duyulan sesin kısa açıklaması (hedef verilirse ona göre) */
+export function heardText(frame, target, opts) {
+  if (frame.muted) return 'Dinliyorum…';
+  if (!frame.note) return 'Dinliyorum…';
+  if (target != null && matchesTarget(frame, target, opts)) return `Duyulan: ${longName(frame.note)} ✓`;
+  return `Duyulan: ${longName(frame.note)}`;
+}
+
+function micPanel(card, onCleanup, { onFrame, target }) {
   const panel = h(`
     <div class="mic">
       <div class="meter" aria-hidden="true"><span></span></div>
@@ -107,7 +123,7 @@ function micPanel(card, onCleanup, { onFrame }) {
   const hold = panel.querySelector('.hold span');
   const listener = new PitchListener((frame) => {
     meter.style.width = `${Math.min(100, frame.rms * 600)}%`;
-    heard.textContent = frame.note ? `Duyulan: ${shortName(frame.note)} ${frame.cents > 0 ? '+' : ''}${frame.cents}¢` : 'Dinliyorum…';
+    heard.textContent = heardText(frame, target);
     onFrame(frame);
   });
   onCleanup(() => listener.stop());
@@ -139,23 +155,28 @@ function playCheck(card, c, { finish, onCleanup }) {
   const matcher = new NoteMatcher({
     holdMs: 700,
     onProgress: (p) => mic.setHold(p),
-    onMatch: () => {
+    onMatch: (t, info) => {
       playChime();
       voiceSay(PHRASES.great);
-      fb.innerHTML = successBlock(`Harika! Bu bir ${longName(c.note)}!`);
-      setTimeout(() => finish({ skipped: false }), 1400);
+      const advice = tuningAdvice(info.tuning);
+      fb.innerHTML = successBlock(`Harika! Bu bir ${longName(c.note)}!`) + (advice ? `<span>${advice}</span>` : '');
+      setTimeout(() => finish({ skipped: false }), advice ? 3200 : 1400);
     },
     onWrong: (frame) => {
       const target = midiOf(c.note);
-      if (frame.midi % 12 === target % 12) {
-        fb.textContent = frame.midi > target ? 'Doğru nota ama bir oktav yüksek: daha yavaş ve geniş üfle.' : 'Doğru nota ama bir oktav pes: havayı biraz hızlandır.';
+      const d = frame.midiFloat - target;
+      const octaves = Math.round(d / 12);
+      if (octaves !== 0 && Math.abs(d - octaves * 12) <= 0.7) {
+        fb.textContent = octaves > 0 ? 'Doğru nota ama bir oktav yüksek: daha yavaş ve geniş üfle.' : 'Doğru nota ama bir oktav pes: havayı biraz hızlandır.';
+      } else if (Math.abs(d) < 1.5) {
+        fb.textContent = d > 0 ? 'Çok yakın! Ses biraz tiz: havayı yumuşat, parmaklarının delikleri tam kapattığından emin ol.' : 'Çok yakın! Ses biraz pes: havayı biraz hızlandır, parmaklarının delikleri tam kapattığından emin ol.';
       } else {
         fb.textContent = `Şu an ${longName(frame.note)} duyuyorum. Parmaklarını resimdekiyle karşılaştır.`;
       }
     },
   });
   matcher.setTarget(midiOf(c.note));
-  const mic = micPanel(card, onCleanup, { onFrame: (f) => matcher.feed(f) });
+  const mic = micPanel(card, onCleanup, { onFrame: (f) => matcher.feed(f), target: midiOf(c.note) });
   let sound = null;
   onCleanup(() => sound?.stop());
   card.querySelector('[data-act=listen]').addEventListener('click', () => {
