@@ -3,7 +3,7 @@
 // böylece dosya indirmeyi kısıtlayan gömülü görünümlerde de çalışır.
 // Tarayıcının robotik sesi kullanılmaz: sesi olmayan bir cümle yalnızca altyazıyla gösterilir.
 import { ttsKey } from './data/phrases.js';
-import { audioContext, audioRunning } from './audio.js';
+import { audioContext, audioRunning, beginAppSound } from './audio.js';
 import { TTS } from './tts/manifest.js';
 
 export { audioRunning };
@@ -98,9 +98,11 @@ function clipHandle(key, rate) {
   let paused = false;
   let stopped = false;
   let watchdog = null;
+  let endAppSound = null;
 
   const halt = () => {
     clearTimeout(watchdog);
+    endAppSound?.();
     const s = src;
     src = null;
     try {
@@ -141,6 +143,7 @@ function clipHandle(key, rate) {
     src = s;
     startedAt = ac.currentTime;
     s.start(0, offset);
+    endAppSound = beginAppSound(((buf.duration - offset) / rate) * 1000);
     arm();
   };
 

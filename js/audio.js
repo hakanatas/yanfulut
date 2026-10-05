@@ -53,6 +53,7 @@ export function playNote(noteId, seconds = 1, { volume = 0.25, when = 0 } = {}) 
   const ac = audioContext();
   const freq = freqOf(noteId);
   const t0 = ac.currentTime + 0.02 + when;
+  const endAppSound = beginAppSound((when + seconds) * 1000);
   const t1 = t0 + seconds;
 
   const out = ac.createGain();
@@ -108,6 +109,7 @@ export function playNote(noteId, seconds = 1, { volume = 0.25, when = 0 } = {}) 
   return {
     done,
     stop() {
+      endAppSound();
       const now = ac.currentTime;
       out.gain.cancelScheduledValues(now);
       out.gain.setValueAtTime(out.gain.value, now);
@@ -214,12 +216,54 @@ export function detectPitch(buf, sampleRate) {
 export function freqToNote(freq) {
   const midiFloat = 69 + 12 * Math.log2(freq / 440);
   const midi = Math.round(midiFloat);
-  return { midi, note: noteFromMidi(midi), cents: Math.round((midiFloat - midi) * 100) };
+  return { midi, midiFloat, note: noteFromMidi(midi), cents: Math.round((midiFloat - midi) * 100) };
+}
+
+/**
+ * Hedef notaya göre sapma (yarım ses cinsinden). octaveOk: farklı oktav da sayılır.
+ * Örn. +0.4 → hedeften 40 sent tiz.
+ */
+export function offsetFromTarget(frame, target, { octaveOk = false } = {}) {
+  let d = (frame.midiFloat ?? frame.midi) - target;
+  if (octaveOk) d -= 12 * Math.round(d / 12);
+  return d;
+}
+
+/**
+ * Bu kare hedef nota sayılır mı? Yeni başlayanlar sık sık 30–60 sent tiz ya da pes
+ * çalar (ayrıca flütler çoğu zaman La=442–443'e akortludur). Notayı en yakın yarım
+ * sese yuvarlamak bu durumda doğru notayı komşu nota sanar; bu yüzden hedefe
+ * ±70 sent yakınlığı kabul ediyoruz. Tam bir yarım ses (100 sent) uzaktaki yanlış
+ * parmak pozisyonu yine kabul edilmez.
+ */
+export const TOLERANCE = 0.7;
+export function matchesTarget(frame, target, { tolerance = TOLERANCE, octaveOk = false } = {}) {
+  if (!frame.note) return false;
+  return Math.abs(offsetFromTarget(frame, target, { octaveOk })) <= tolerance;
+}
+
+// Uygulamanın kendi çaldığı sesler (örnek nota, Google anlatımı) hoparlörden
+// mikrofona geri girer; bu sırada mikrofonu dinlemeyiz.
+const appSounds = new Map();
+let appSoundId = 0;
+/** Bir sesin çalmaya başladığını bildirir; dönen fonksiyon ses erken kesilince çağrılır. */
+export function beginAppSound(ms) {
+  const id = ++appSoundId;
+  appSounds.set(id, performance.now() + ms + 250);
+  return () => appSounds.set(id, Math.min(appSounds.get(id) ?? 0, performance.now() + 250));
+}
+function appSoundActive(now) {
+  for (const [id, until] of appSounds) {
+    if (until < now) appSounds.delete(id);
+    else return true;
+  }
+  return false;
 }
 
 /**
  * Mikrofonu dinler ve her karede algılanan notayı bildirir.
- * onFrame({note, midi, cents, freq, rms}) — ses yoksa note null olur.
+ * onFrame({note, midi, midiFloat, cents, freq, rms}) — ses yoksa note null olur;
+ * uygulama kendisi ses çalarken muted: true ile gelir.
  */
 export class PitchListener {
   constructor(onFrame) {
@@ -242,9 +286,13 @@ export class PitchListener {
     const tick = () => {
       if (!this.running) return;
       this.analyser.getFloatTimeDomainData(this.buf);
-      const { freq, rms } = detectPitch(this.buf, ac.sampleRate);
-      if (freq > 0) this.onFrame({ ...freqToNote(freq), freq, rms });
-      else this.onFrame({ note: null, rms });
+      if (appSoundActive(performance.now())) {
+        this.onFrame({ note: null, rms: 0, muted: true });
+      } else {
+        const { freq, rms } = detectPitch(this.buf, ac.sampleRate);
+        if (freq > 0) this.onFrame({ ...freqToNote(freq), freq, rms });
+        else this.onFrame({ note: null, rms });
+      }
       this.raf = requestAnimationFrame(tick);
     };
     tick();
@@ -260,16 +308,22 @@ export class PitchListener {
 
 /**
  * Hedef notanın belirli bir süre boyunca tutulmasını bekleyen yardımcı.
- * Bir nota eşleştikten sonra, o nota bırakılana (ses kesilene, azalana ya da
- * başka bir notaya geçilene) kadar gelen kareler yok sayılır. Böylece uzatılan
- * nota sonraki hedef için hata sayılmaz ve tekrarlanan notalar (Sol Sol Sol)
- * her seferinde yeniden çalınmak zorunda kalır.
+ * - Hedefe ±70 sent yakın sesler kabul edilir (bkz. matchesTarget).
+ * - Nefes ya da titreşimden kaynaklanan kısa kopmalar (≤150 ms) sayacı sıfırlamaz.
+ * - octaveOk: aynı notanın başka oktavı da kabul edilir (onMatch'te octave: true).
+ * - Bir nota eşleştikten sonra, o nota bırakılana (ses kesilene, azalana ya da
+ *   başka bir notaya geçilene) kadar gelen kareler yok sayılır. Böylece uzatılan
+ *   nota sonraki hedef için hata sayılmaz ve tekrarlanan notalar (Sol Sol Sol)
+ *   her seferinde yeniden çalınmak zorunda kalır.
+ * - Yanlış nota ancak 600 ms boyunca aynı kalırsa bildirilir.
  */
 export class NoteMatcher {
-  constructor({ holdMs = 300, onProgress, onMatch, onWrong } = {}) {
-    Object.assign(this, { holdMs, onProgress, onMatch, onWrong });
+  constructor({ holdMs = 300, octaveOk = false, onProgress, onMatch, onWrong } = {}) {
+    Object.assign(this, { holdMs, octaveOk, onProgress, onMatch, onWrong });
     this.target = null;
     this.since = 0;
+    this.lastHit = 0;
+    this.offsets = [];
     this.wrongSince = 0;
     this.lastWrong = null;
     this.reported = false;
@@ -279,30 +333,40 @@ export class NoteMatcher {
   setTarget(midi) {
     this.target = midi;
     this.since = 0;
+    this.offsets = [];
     this.wrongSince = 0;
   }
 
   feed(frame, now = performance.now()) {
+    if (frame.muted) return;
     if (this.release) {
       const { midi, rms } = this.release;
-      if (frame.note && frame.midi === midi && frame.rms > rms * 0.5) return;
+      if (matchesTarget(frame, midi, { octaveOk: this.octaveOk }) && frame.rms > rms * 0.5) return;
       this.release = null;
     }
     if (this.target == null) return;
-    if (frame.note && frame.midi === this.target) {
+    const opts = { octaveOk: this.octaveOk };
+    if (matchesTarget(frame, this.target, opts)) {
       this.lastWrong = null;
+      this.lastHit = now;
       if (!this.since) this.since = now;
+      this.offsets.push(offsetFromTarget(frame, this.target, opts));
       const p = Math.min(1, (now - this.since) / this.holdMs);
       this.onProgress?.(p, frame);
       if (p >= 1) {
         const t = this.target;
+        const sorted = [...this.offsets].sort((a, b) => a - b);
+        const cents = Math.round(sorted[sorted.length >> 1] * 100);
         this.target = null;
         this.release = { midi: t, rms: frame.rms };
-        this.onMatch?.(t, frame);
+        this.onMatch?.(t, { ...frame, octave: frame.midi !== t && Math.abs(frame.midiFloat - t) > 6, tuning: cents });
       }
       return;
     }
+    // Kısa kopmalar (nefes, titreşim) tutma süresini sıfırlamasın
+    if (this.since && now - this.lastHit < 150) return;
     this.since = 0;
+    this.offsets = [];
     this.onProgress?.(0, frame);
     if (frame.note) {
       if (this.lastWrong !== frame.midi) {
