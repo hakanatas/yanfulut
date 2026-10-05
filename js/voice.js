@@ -2,7 +2,9 @@
 // üretilmiş ses dosyalarındadır (audio/tts/). Dosyası olmayan cümleler için
 // tarayıcının kendi Türkçe sesi (Web Speech API) kullanılır.
 import { ttsKey } from './data/phrases.js';
-import { audioContext } from './audio.js';
+import { audioContext, audioRunning } from './audio.js';
+
+export { audioRunning };
 
 const BASE = 'audio/tts/';
 let manifest = null;
@@ -100,20 +102,10 @@ function clipHandle(key, rate) {
   let startedAt = 0;
   let paused = false;
   let stopped = false;
+  let watchdog = null;
 
-  const play = () => {
-    const s = ac.createBufferSource();
-    s.buffer = buf;
-    s.playbackRate.value = rate;
-    s.connect(ac.destination);
-    s.onended = () => {
-      if (src === s) finish(true);
-    };
-    src = s;
-    startedAt = ac.currentTime;
-    s.start(0, offset);
-  };
   const halt = () => {
+    clearTimeout(watchdog);
     const s = src;
     src = null;
     try {
@@ -121,6 +113,37 @@ function clipHandle(key, rate) {
     } catch {
       /* zaten durmuş */
     }
+  };
+  // Ses motoru kilitli kaldıysa ya da "bitti" olayı hiç gelmezse ders donmasın
+  const arm = () => {
+    clearTimeout(watchdog);
+    const remaining = ((buf.duration - offset) / rate) * 1000;
+    watchdog = setTimeout(() => {
+      if (paused || stopped) return;
+      if (ac.state !== 'running') {
+        halt();
+        finish(false);
+      } else {
+        arm();
+      }
+    }, ac.state === 'running' ? remaining + 1500 : 1500);
+  };
+  const play = () => {
+    if (ac.state !== 'running') ac.resume().catch(() => {});
+    const s = ac.createBufferSource();
+    s.buffer = buf;
+    s.playbackRate.value = rate;
+    s.connect(ac.destination);
+    s.onended = () => {
+      if (src === s) {
+        clearTimeout(watchdog);
+        finish(true);
+      }
+    };
+    src = s;
+    startedAt = ac.currentTime;
+    s.start(0, offset);
+    arm();
   };
 
   loadClip(key).then(
@@ -136,7 +159,7 @@ function clipHandle(key, rate) {
       if (paused || stopped) return;
       paused = true;
       if (src) {
-        offset += (ac.currentTime - startedAt) * rate;
+        offset = Math.min(buf.duration, offset + (ac.currentTime - startedAt) * rate);
         halt();
       }
     },

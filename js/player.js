@@ -2,7 +2,7 @@
 //  1) Çizimli sahneler: tahtaya çizim + anlatım (seslendirme/altyazı) + duraklar
 //  2) Gerçek video (mp4/webm): belirli saniyelerde duran ve soru soran video
 import { Board } from './sketch.js';
-import { narrate, stopSpeaking, estimateMs, canSpeak, preload, voiceReady } from './voice.js';
+import { narrate, stopSpeaking, estimateMs, canSpeak, preload, voiceReady, audioRunning } from './voice.js';
 import { playNote, playMelody } from './audio.js';
 import { runCheckpoint, h } from './checkpoints.js';
 import { progress } from './progress.js';
@@ -45,6 +45,7 @@ export class LessonPlayer {
         <div class="stage">
           ${this.isVideo ? '<div class="media-host"></div>' : '<svg class="board" viewBox="0 0 800 450" aria-hidden="true"></svg>'}
           <div class="caption" aria-live="polite" ${s.captions ? '' : 'hidden'}></div>
+          <div class="sound-hint" hidden>🔇 Sesi açmak için ekrana bir kez dokun</div>
           <div class="cp-overlay" hidden></div>
           <button class="cover">
             <span class="cover-play" aria-hidden="true">▶</span>
@@ -65,6 +66,8 @@ export class LessonPlayer {
     this.caption = this.el.querySelector('.caption');
     this.overlay = this.el.querySelector('.cp-overlay');
     this.cover = this.el.querySelector('.cover');
+    this.soundHint = this.el.querySelector('.sound-hint');
+    this.el.addEventListener('pointerdown', () => (this.soundHint.hidden = true));
     this.playBtn = this.el.querySelector('[data-act=toggle]');
     this.timeline = this.el.querySelector('.timeline');
 
@@ -285,7 +288,8 @@ export class LessonPlayer {
     const ok = await handle.done;
     if (this.narration === handle) this.narration = null;
     if (token.cancelled) return false;
-    // Okunamadıysa (ses yok, seslendirme kapatıldı) altyazı okunabilsin diye bekle
+    // Okunamadıysa (ses kilitli, seslendirme kapatıldı) altyazı okunabilsin diye bekle
+    if (!ok && progress.settings.voice && !audioRunning()) this.soundHint.hidden = false;
     if (!ok) return this.wait(Math.max(0, estimateMs(text, rate) - (performance.now() - t0)), token);
     return true;
   }

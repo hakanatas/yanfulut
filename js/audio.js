@@ -9,6 +9,29 @@ export function audioContext() {
   return ctx;
 }
 
+export const audioRunning = () => ctx?.state === 'running';
+
+/**
+ * Safari ve iOS ses motorunu yalnızca bir dokunma/tıklama anında açar. Bu yüzden
+ * her kullanıcı etkileşiminde, olayın içinde eşzamanlı olarak motoru açıp sessiz
+ * bir örnek çalıyoruz. Böylece sonradan (ses dosyası indikten sonra) başlayan
+ * Google seslendirmesi de duyulur.
+ */
+function unlockAudio() {
+  const ac = audioContext();
+  if (ac.state === 'running') return;
+  const silent = ac.createBufferSource();
+  silent.buffer = ac.createBuffer(1, 1, 22050);
+  silent.connect(ac.destination);
+  silent.start(0);
+}
+
+if (typeof window !== 'undefined') {
+  for (const type of ['pointerdown', 'touchend', 'click', 'keydown']) {
+    window.addEventListener(type, unlockAudio, { capture: true, passive: true });
+  }
+}
+
 let noiseBuffer = null;
 function breathNoise(ac) {
   if (!noiseBuffer) {
