@@ -5,8 +5,9 @@
 //   GOOGLE_TTS_API_KEY=... node tools/tts.mjs --force    # hepsini yeniden üret
 //   TTS_VOICE=tr-TR-Chirp3-HD-Aoede node tools/tts.mjs   # başka bir ses
 //
-// Çıktı: audio/tts/<özet>.mp3 ve audio/tts/manifest.json. Uygulama manifest'teki
-// cümleleri bu dosyalardan çalar, diğerleri için tarayıcının kendi sesine düşer.
+// Çıktı: js/tts/clips/<özet>.js (MP3, base64 olarak bir JS modülünün içinde) ve
+// js/tts/manifest.js. Sesler JS modülü olarak paketlenir; böylece ses dosyası
+// indirmeyi engelleyen gömülü görünümlerde (ör. Claude önizlemesi) de çalar.
 // Bir proxy arkasındaysanız Node 22.21+ ile NODE_USE_ENV_PROXY=1 ekleyin.
 import { mkdir, readFile, writeFile, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -16,7 +17,8 @@ import { PHRASES, checkpointPrompt, ttsKey } from '../js/data/phrases.js';
 const KEY = process.env.GOOGLE_TTS_API_KEY;
 const VOICE = process.env.TTS_VOICE || 'tr-TR-Chirp3-HD-Leda';
 const FORCE = process.argv.includes('--force');
-const OUT = new URL('../audio/tts/', import.meta.url);
+const OUT = new URL('../js/tts/clips/', import.meta.url);
+const MANIFEST = new URL('../js/tts/manifest.js', import.meta.url);
 
 if (!KEY) {
   console.error('GOOGLE_TTS_API_KEY ortam değişkeni gerekli.');
@@ -57,9 +59,11 @@ const files = {};
 let made = 0;
 for (const text of texts) {
   const key = ttsKey(text, VOICE);
-  const file = new URL(`${key}.mp3`, OUT);
+  const file = new URL(`${key}.js`, OUT);
   if (FORCE || !existsSync(file)) {
-    await writeFile(file, await synthesize(text));
+    const mp3 = await synthesize(text);
+    const body = `// ${text.replace(/\n/g, ' ')}\nexport default '${mp3.toString('base64')}';\n`;
+    await writeFile(file, body);
     made++;
     process.stdout.write('.');
   }
@@ -68,11 +72,10 @@ for (const text of texts) {
 
 // Artık kullanılmayan eski dosyaları temizle
 for (const name of await readdir(OUT)) {
-  if (name.endsWith('.mp3') && !files[name.slice(0, -4)]) await unlink(new URL(name, OUT));
+  if (name.endsWith('.js') && !files[name.slice(0, -3)]) await unlink(new URL(name, OUT));
 }
 
-const manifest = { voice: VOICE, files };
-const prev = existsSync(new URL('manifest.json', OUT)) ? await readFile(new URL('manifest.json', OUT), 'utf8') : '';
-const next = JSON.stringify(manifest, null, 2) + '\n';
-if (prev !== next) await writeFile(new URL('manifest.json', OUT), next);
+const next = `// tools/tts.mjs tarafından üretilir, elle düzenlemeyin.\nexport const TTS = ${JSON.stringify({ voice: VOICE, files }, null, 2)};\n`;
+const prev = existsSync(MANIFEST) ? await readFile(MANIFEST, 'utf8') : '';
+if (prev !== next) await writeFile(MANIFEST, next);
 console.log(`\n${texts.length} cümle, ${made} yeni ses dosyası (${VOICE}).`);

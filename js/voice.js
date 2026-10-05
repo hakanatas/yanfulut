@@ -1,27 +1,24 @@
-// Seslendirme. Öncelik, tools/tts.mjs ile Google Cloud Text-to-Speech'ten önceden
-// üretilmiş ses dosyalarındadır (audio/tts/). Dosyası olmayan cümleler için
-// tarayıcının kendi Türkçe sesi (Web Speech API) kullanılır.
+// Seslendirme: tools/tts.mjs ile Google Cloud Text-to-Speech'ten (tr-TR Chirp3-HD)
+// önceden üretilmiş sesler. Sesler JS modüllerinin içinde gelir (js/tts/clips/),
+// böylece dosya indirmeyi kısıtlayan gömülü görünümlerde de çalışır.
+// Tarayıcının robotik sesi kullanılmaz: sesi olmayan bir cümle yalnızca altyazıyla gösterilir.
 import { ttsKey } from './data/phrases.js';
 import { audioContext, audioRunning } from './audio.js';
+import { TTS } from './tts/manifest.js';
 
 export { audioRunning };
 
-const BASE = 'audio/tts/';
-let manifest = null;
-export const voiceReady = fetch(`${BASE}manifest.json`)
-  .then((r) => (r.ok ? r.json() : null))
-  .then((m) => (manifest = m))
-  .catch(() => null);
-
 const buffers = new Map();
+
 function loadClip(key) {
   if (!buffers.has(key)) {
-    const p = fetch(`${BASE}${key}.mp3`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`Ses dosyası bulunamadı: ${key}`);
-        return r.arrayBuffer();
-      })
-      .then((b) => audioContext().decodeAudioData(b));
+    const p = import(`./tts/clips/${key}.js`)
+      .then(({ default: b64 }) => {
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return audioContext().decodeAudioData(bytes.buffer);
+      });
     p.catch(() => buffers.delete(key));
     buffers.set(key, p);
   }
@@ -29,33 +26,25 @@ function loadClip(key) {
 }
 
 function recordingKey(text) {
-  if (!manifest?.files) return null;
-  const key = ttsKey(text, manifest.voice);
-  return manifest.files[key] ? key : null;
+  if (!text) return null;
+  const key = ttsKey(text, TTS.voice);
+  return TTS.files[key] ? key : null;
 }
 
-/** Sonraki cümleleri arka planda indir (sahne geçişleri beklemesiz olsun) */
+/** Bu cümlenin Google sesi var mı? */
+export const hasVoice = (text) => !!recordingKey(text);
+
+/** Sonraki cümleleri arka planda hazırla (sahne geçişleri beklemesiz olsun) */
 export function preload(texts) {
-  voiceReady.then(() => texts.forEach((t) => {
-    const k = t && recordingKey(t);
+  texts.forEach((t) => {
+    const k = recordingKey(t);
     if (k) loadClip(k).catch(() => {});
-  }));
+  });
 }
 
-// --------------------------------------------------------------------------- Web Speech
-let webVoice = null;
-function pickVoice() {
-  const voices = window.speechSynthesis?.getVoices() || [];
-  webVoice = voices.find((v) => v.lang?.toLowerCase().startsWith('tr')) || null;
-}
-if ('speechSynthesis' in window) {
-  pickVoice();
-  speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
-}
+export const canSpeak = () => 'AudioContext' in window || 'webkitAudioContext' in window;
 
-export const canSpeak = () => 'speechSynthesis' in window || 'AudioContext' in window;
-
-/** Okuma süresi tahmini (seslendirme kapalıyken altyazının ekranda kalma süresi) */
+/** Okuma süresi tahmini (sessiz durumda altyazının ekranda kalma süresi) */
 export function estimateMs(text, rate = 1) {
   return (700 + text.length * 62) / rate;
 }
@@ -63,14 +52,14 @@ export function estimateMs(text, rate = 1) {
 let current = null;
 
 /**
- * Bir cümleyi okur.
+ * Bir cümleyi Google sesiyle okur.
  * @returns {{done: Promise<boolean>, pause(): void, resume(): void, stop(): void}}
- *   done: sonuna kadar okununca true; okunamazsa ya da durdurulursa false.
+ *   done: sonuna kadar okununca true; ses yoksa, çalınamazsa ya da durdurulursa false.
  */
 export function narrate(text, { rate = 1 } = {}) {
   current?.stop();
   const key = recordingKey(text);
-  const handle = key ? clipHandle(key, rate) : speechHandle(text, rate);
+  const handle = key ? clipHandle(key, rate) : silentHandle();
   current = handle;
   return handle;
 }
@@ -92,7 +81,13 @@ function settle() {
   return { done, finish: (v) => !settled && ((settled = true), resolve(v)) };
 }
 
-/** Önceden üretilmiş ses dosyası: gerçekten duraklatılıp kaldığı yerden sürer */
+function silentHandle() {
+  const { done, finish } = settle();
+  finish(false);
+  return { done, pause() {}, resume() {}, stop() {} };
+}
+
+/** Ses kaydı: gerçekten duraklatılıp kaldığı yerden sürer */
 function clipHandle(key, rate) {
   const { done, finish } = settle();
   const ac = audioContext();
@@ -118,15 +113,18 @@ function clipHandle(key, rate) {
   const arm = () => {
     clearTimeout(watchdog);
     const remaining = ((buf.duration - offset) / rate) * 1000;
-    watchdog = setTimeout(() => {
-      if (paused || stopped) return;
-      if (ac.state !== 'running') {
-        halt();
-        finish(false);
-      } else {
-        arm();
-      }
-    }, ac.state === 'running' ? remaining + 1500 : 1500);
+    watchdog = setTimeout(
+      () => {
+        if (paused || stopped) return;
+        if (ac.state !== 'running') {
+          halt();
+          finish(false);
+        } else {
+          arm();
+        }
+      },
+      ac.state === 'running' ? remaining + 1500 : 1500,
+    );
   };
   const play = () => {
     if (ac.state !== 'running') ac.resume().catch(() => {});
@@ -171,48 +169,6 @@ function clipHandle(key, rate) {
     stop() {
       stopped = true;
       halt();
-      finish(false);
-    },
-  };
-}
-
-/** Tarayıcı sesi: duraklatılınca cümle baştan okunur (tarayıcıların pause desteği güvenilmez) */
-function speechHandle(text, rate) {
-  const { done, finish } = settle();
-  if (!('speechSynthesis' in window)) {
-    finish(false);
-    return { done, pause() {}, resume() {}, stop() {} };
-  }
-  let gen = 0;
-  let stopped = false;
-  const start = () => {
-    const my = ++gen;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'tr-TR';
-    if (webVoice) u.voice = webVoice;
-    u.rate = rate;
-    const t0 = performance.now();
-    // Hiç ses yoksa bazı tarayıcılar anında "bitti" der: bunu başarısızlık say
-    u.onend = () => my === gen && finish(performance.now() - t0 > 300);
-    u.onerror = () => my === gen && finish(false);
-    setTimeout(() => my === gen && finish(true), estimateMs(text, rate) * 2 + 3000);
-    speechSynthesis.speak(u);
-  };
-  start();
-  return {
-    done,
-    pause() {
-      gen++;
-      speechSynthesis.cancel();
-    },
-    resume() {
-      if (!stopped) start();
-    },
-    stop() {
-      stopped = true;
-      gen++;
-      speechSynthesis.cancel();
       finish(false);
     },
   };

@@ -2,7 +2,7 @@
 //  1) Çizimli sahneler: tahtaya çizim + anlatım (seslendirme/altyazı) + duraklar
 //  2) Gerçek video (mp4/webm): belirli saniyelerde duran ve soru soran video
 import { Board } from './sketch.js';
-import { narrate, stopSpeaking, estimateMs, canSpeak, preload, voiceReady, audioRunning } from './voice.js';
+import { narrate, stopSpeaking, estimateMs, canSpeak, preload, audioRunning, hasVoice } from './voice.js';
 import { playNote, playMelody } from './audio.js';
 import { runCheckpoint, h } from './checkpoints.js';
 import { progress } from './progress.js';
@@ -58,7 +58,7 @@ export class LessonPlayer {
           <button class="ctl play" data-act="toggle" title="Oynat / Duraklat (boşluk)" aria-label="Oynat">▶</button>
           <button class="ctl" data-act="next" title="Sonraki sahne (→)" aria-label="Sonraki sahne">⏭</button>
           <div class="timeline" role="group" aria-label="Sahneler"></div>
-          ${this.isVideo || !canSpeak() ? '' : `<button class="ctl toggle ${s.voice ? 'on' : ''}" data-act="voice" title="Seslendirme" aria-pressed="${s.voice}">🗣</button>`}
+          ${this.isVideo || !canSpeak() ? '' : `<button class="ctl toggle ${s.voice ? 'on' : ''}" data-act="voice" title="Google seslendirmesi" aria-pressed="${s.voice}">🗣</button>`}
           <button class="ctl toggle ${s.captions ? 'on' : ''}" data-act="cc" title="Altyazı" aria-pressed="${s.captions}">CC</button>
         </div>
       </div>`);
@@ -279,8 +279,6 @@ export class LessonPlayer {
     if (!text) return true;
     const { voice, rate } = progress.settings;
     if (!voice || !canSpeak()) return this.wait(estimateMs(text, rate), token);
-    await voiceReady;
-    if (token.cancelled) return false;
     const t0 = performance.now();
     const handle = narrate(text, { rate });
     this.narration = handle;
@@ -289,7 +287,7 @@ export class LessonPlayer {
     if (this.narration === handle) this.narration = null;
     if (token.cancelled) return false;
     // Okunamadıysa (ses kilitli, seslendirme kapatıldı) altyazı okunabilsin diye bekle
-    if (!ok && progress.settings.voice && !audioRunning()) this.soundHint.hidden = false;
+    if (!ok && hasVoice(text) && !audioRunning()) this.soundHint.hidden = false;
     if (!ok) return this.wait(Math.max(0, estimateMs(text, rate) - (performance.now() - t0)), token);
     return true;
   }

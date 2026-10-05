@@ -62,7 +62,7 @@ js/art.js             Çizimler: flüt, porte, maskot, şişe, dudaklar…
 js/dots.js            Nota Noktaları oyunu
 js/audio.js           Flüt benzeri sentezleyici ve mikrofonla perde algılama
 js/voice.js           Seslendirme: önceden üretilmiş Google TTS sesleri, yoksa tarayıcı sesi
-audio/tts/            Google TTS ile üretilmiş anlatım sesleri ve manifest.json
+js/tts/               Google TTS ile üretilmiş anlatım sesleri (JS modülü içinde MP3) ve manifest.js
 tools/tts.mjs         Anlatımları Google Cloud Text-to-Speech ile MP3'e çeviren betik
 js/progress.js        İlerleme ve ayarlar
 js/data/notes.js      Notalar, frekanslar ve parmak pozisyonları
@@ -73,13 +73,13 @@ js/data/phrases.js    Seslendirilen kısa cümleler (soru, "Doğru!" vb.)
 
 ## Seslendirme (Google TTS)
 
-Anlatımlar `audio/tts/` klasöründe hazır gelir; uygulama çalışırken internete ya da bir API anahtarına ihtiyaç duymaz. Ders metnini değiştirdiğinizde veya yeni bir ders eklediğinizde sesleri yeniden üretin:
+Anlatımlar `js/tts/` klasöründe hazır gelir (her ses, base64 MP3 içeren küçük bir JS modülüdür; böylece dosya indirmeyi kısıtlayan gömülü görünümlerde de çalar); uygulama çalışırken internete ya da bir API anahtarına ihtiyaç duymaz. Ders metnini değiştirdiğinizde veya yeni bir ders eklediğinizde sesleri yeniden üretin:
 
 ```bash
 GOOGLE_TTS_API_KEY=anahtarınız node tools/tts.mjs
 ```
 
-Betik yalnızca eksik cümleleri üretir, artık kullanılmayan dosyaları siler ve `audio/tts/manifest.json` dosyasını günceller. Başka bir ses için `TTS_VOICE=tr-TR-Chirp3-HD-Aoede` gibi bir değer verin (Türkçe sesler: `tr-TR-Chirp3-HD-*`, `tr-TR-Wavenet-*`). API anahtarı yalnızca bu betikte kullanılır, tarayıcıya hiç gönderilmez. Sesi henüz üretilmemiş cümleler için uygulama tarayıcının kendi Türkçe sesine geçer.
+Betik yalnızca eksik cümleleri üretir, artık kullanılmayan dosyaları siler ve `js/tts/manifest.js` dosyasını günceller. Başka bir ses için `TTS_VOICE=tr-TR-Chirp3-HD-Aoede` gibi bir değer verin (Türkçe sesler: `tr-TR-Chirp3-HD-*`, `tr-TR-Wavenet-*`). API anahtarı yalnızca bu betikte kullanılır, tarayıcıya hiç gönderilmez. Tarayıcının robotik sesi hiç kullanılmaz; sesi henüz üretilmemiş bir cümle yalnızca altyazıyla gösterilir.
 
 ## İçerik ekleme
 
