@@ -2,7 +2,7 @@
 // sıradaki noktaya çizgi çekilir; şarkı bitince resim tamamlanır.
 import { distributeDots } from './data/songs.js';
 import { longName, midiOf, shortName, noteFromMidi, titleName } from './data/notes.js';
-import { PitchListener, NoteMatcher, playNote, playMelody, playChime } from './audio.js';
+import { PitchListener, NoteMatcher, playNote, playMelody, playChime, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fluteSvg, staffSvg, h, heardText } from './checkpoints.js';
 import { progress } from './progress.js';
 import { say } from './voice.js';
@@ -62,6 +62,7 @@ export class DotsGame {
               <div class="target-visual"></div>
             </div>
             <div class="mic-status" aria-live="polite"></div>
+            <div class="meter level" aria-hidden="true" hidden><span></span></div>
             <div class="hold"><span></span></div>
             <p class="cp-feedback" aria-live="polite"></p>
           </aside>
@@ -163,6 +164,7 @@ export class DotsGame {
     this.el.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
     this.$('.touch-pad').hidden = mode !== 'touch';
     const status = this.$('.mic-status');
+    this.$('.level').hidden = true;
     if (mode !== 'mic') {
       status.textContent = mode === 'touch' ? 'Sıradaki notanın düğmesine dokun.' : mode === 'demo' ? 'Dinle ve resmin çizilişini izle…' : 'Başlamak için bir mod seç.';
     }
@@ -176,16 +178,25 @@ export class DotsGame {
         onWrong: (frame) => this.input(frame.midi),
       });
       this.matcher.setTarget(this.targetMidi());
-      this.listener = new PitchListener((f) => {
-        status.textContent = f.note ? heardText(f, this.targetMidi(), { octaveOk: true }) : 'Dinliyorum… sıradaki notayı çal.';
-        this.matcher.feed(f);
-      });
+      const level = this.$('.level');
+      let silent = false;
+      this.listener = new PitchListener(
+        (f) => {
+          level.firstElementChild.style.width = `${Math.min(100, (f.rms || 0) * 600)}%`;
+          if (silent) status.textContent = SILENT_MIC_MESSAGE;
+          else status.textContent = f.note ? heardText(f, this.targetMidi(), { octaveOk: true }) : 'Dinliyorum… sıradaki notayı çal.';
+          this.matcher.feed(f);
+        },
+        { onStatus: (st) => (silent = st === 'silent') },
+      );
       try {
         status.textContent = 'Mikrofon açılıyor…';
         await this.listener.start();
-      } catch {
-        status.textContent = 'Mikrofona erişilemedi. “Dokunarak çal” modunu deneyebilirsin.';
+        level.hidden = false;
+      } catch (err) {
+        status.textContent = `${micErrorMessage(err)} Şimdilik “Dokunarak çal” modunu kullanabilirsin.`;
         this.listener = null;
+        this.el.querySelector('[data-mode=mic]').classList.remove('active');
       }
     }
     if (mode === 'demo') {

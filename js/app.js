@@ -5,7 +5,7 @@ import { ALL_NOTES, longName, shortName, titleName, tipOf, KEY_NAMES, fingeringO
 import { LessonPlayer } from './player.js';
 import { DotsGame } from './dots.js';
 import { progress } from './progress.js';
-import { playNote, PitchListener } from './audio.js';
+import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fluteSvg, staffSvg, h } from './checkpoints.js';
 import { mascot } from './art.js';
 
@@ -201,28 +201,33 @@ function showTuner() {
         <div class="tuner-name muted">Bir nota çal</div>
         <div class="gauge"><span class="needle"></span><i class="flat">♭</i><i class="mid">0</i><i class="sharp">♯</i></div>
         <div class="tuner-cents muted"></div>
+        <div class="meter level" aria-hidden="true"><span></span></div>
         <button class="btn primary" data-act="mic">🎤 Mikrofonu aç</button>
       </div>
       <p class="hint muted">Akort için flütünün baş kısmını gövdeden biraz dışarı çekersen ses pesleşir, içeri itersen tizleşir.</p>
     </section>`);
   view.appendChild(page);
   const $ = (s) => page.querySelector(s);
-  const listener = new PitchListener((f) => {
-    if (!f.note) return;
-    $('.tuner-note').textContent = shortName(f.note);
-    $('.tuner-name').textContent = longName(f.note);
-    $('.tuner-cents').textContent = `${f.cents > 0 ? '+' : ''}${f.cents} sent · ${f.freq.toFixed(1)} Hz`;
-    $('.needle').style.transform = `rotate(${Math.max(-50, Math.min(50, f.cents)) * 0.9}deg)`;
-    $('.tuner').classList.toggle('in-tune', Math.abs(f.cents) <= 10);
-  });
+  const listener = new PitchListener(
+    (f) => {
+      $('.level span').style.width = `${Math.min(100, (f.rms || 0) * 600)}%`;
+      if (!f.note) return;
+      $('.tuner-note').textContent = shortName(f.note);
+      $('.tuner-name').textContent = longName(f.note);
+      $('.tuner-cents').textContent = `${f.cents > 0 ? '+' : ''}${f.cents} sent · ${f.freq.toFixed(1)} Hz`;
+      $('.needle').style.transform = `rotate(${Math.max(-50, Math.min(50, f.cents)) * 0.9}deg)`;
+      $('.tuner').classList.toggle('in-tune', Math.abs(f.cents) <= 10);
+    },
+    { onStatus: (st) => ($('.tuner-name').textContent = st === 'silent' ? SILENT_MIC_MESSAGE : 'Bir nota çal') },
+  );
   active = listener;
   $('[data-act=mic]').addEventListener('click', async (e) => {
     try {
       await listener.start();
       e.target.textContent = '🎤 Dinliyorum…';
       e.target.disabled = true;
-    } catch {
-      $('.tuner-name').textContent = 'Mikrofona erişilemedi. Tarayıcı izinlerini kontrol et.';
+    } catch (err) {
+      $('.tuner-name').textContent = micErrorMessage(err);
     }
   });
 }
@@ -246,5 +251,8 @@ resetBtn?.addEventListener('click', () => {
   progress.reset();
   route();
 });
+// Başka bir sayfanın içinde (ör. Claude önizlemesi) mikrofon izni verilmez: canlı siteye yönlendir
+if (window.top !== window.self) document.querySelector('.embed-note').hidden = false;
+
 window.addEventListener('hashchange', route);
 route();
