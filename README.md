@@ -9,7 +9,7 @@ Yan flüt ve keman öğrenmek isteyenler için **çizimli, etkileşimli video de
 
 ## Keman
 
-8 ders: Kemanla Tanış, Kemanı Tutmak, Yay Tutuşu, Boş Teller, La Telinde Parmaklar, Re Telinde Parmaklar, Ritim ve Yay Yönleri, Mi Telinde Parmaklar. Derslerde detaylı keman ve yay çizimleri, keman çalan çocuk, yay tutuşu, yayın tellere dik çekilişi ve 1. pozisyon parmak yeri şeması (klavye üzerinde bantlarla) var. Şarkılar La ve Re majörde: Sıcak Çörekler, Küçük Kuzu, Neşeye Övgü (keman resmi çıkar) ve Daha Dün Annemizin. Örnek notalar keman tınısıyla çalınır, mikrofon en kalın Sol telinden (196 Hz) itibaren dinler; boş tel akordu kaymışsa ince akort vidası, basılı notada parmak yeri önerilir.
+8 ders: Kemanla Tanış, Kemanı Tutmak, Yay Tutuşu, Boş Teller, La Telinde Parmaklar, Re Telinde Parmaklar, Ritim ve Yay Yönleri, Mi Telinde Parmaklar. Derslerde detaylı keman ve yay çizimleri, keman çalan çocuk, yay tutuşu, yayın tellere dik çekilişi ve 1. pozisyon parmak yeri şeması (klavye üzerinde bantlarla) var. Şarkılar La ve Re majörde, en kolaydan başlayarak: Boş Tel Treni (yalnızca boş teller), Salıncak, Merdiven, Sıcak Çörekler, Tembel Çocuk, Küçük Kuzu, Neşeye Övgü (keman resmi çıkar) ve Daha Dün Annemizin. Örnek notalar keman tınısıyla çalınır, mikrofon en kalın Sol telinden (196 Hz) itibaren dinler; boş tel akordu kaymışsa ince akort vidası, basılı notada parmak yeri önerilir.
 
 ## Neler var?
 
@@ -32,6 +32,10 @@ Maskotumuz **Nota** (yüzü olan bir sekizlik nota) dersler boyunca eşlik eder.
 
 | Şarkı | Notalar | Gizli resim |
 |---|---|---|
+| Si Treni | Si | Kalp |
+| Salıncak | Si, La | Balon |
+| Merdiven | Sol, La, Si | Ev |
+| Tembel Çocuk | Sol, La, Si, Do, Re | Güneş |
 | Sıcak Çörekler | Si, La, Sol | Sekizlik nota |
 | Küçük Kuzu | Sol, La, Si, Re | Kuzu |
 | Neşeye Övgü | Sol, La, Si, Do, Re | Fil |

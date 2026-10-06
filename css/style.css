@@ -452,6 +452,8 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 /* ------------------------------------------------------------- Nota Noktaları */
 .dots-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .dots-head p { margin: 0; }
+.dots-head .song-hint { margin-top: 4px; font-weight: 600; }
+.dots-detail.stroke-sun-thick { fill: none; stroke: var(--sun); stroke-width: 2.4; }
 .stars { font-size: 1.8rem; letter-spacing: 2px; color: color-mix(in srgb, var(--ink) 20%, transparent); white-space: nowrap; }
 .stars .on { color: var(--sun); -webkit-text-stroke: 1.5px var(--ink); }
 .dots-main { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; margin: 12px 0; }

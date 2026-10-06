@@ -164,7 +164,7 @@ export const LESSONS = [
       openString('D', 'D4', 'Re', 'Şimdi Re teli. Sağ dirseğini biraz kaldır ki yay yalnızca Re teline değsin.'),
       openString('E', 'E5', 'Mi', 'Mi teli en ince teldir; sesi parlak çıkar. Dirseğini biraz indir ve yayı hafifçe çek.'),
       openString('G', 'G3', 'Sol', 'Son olarak en kalın tel, Sol teli. Dirseğini en yükseğe kaldır ve yayı sakin çek.'),
-      outro('Dört tel tamam!', 'Muhteşem! Dört boş teli de çaldın. Sırada parmaklarımızı kullanmak var.'),
+      outro('Dört tel tamam!', 'Muhteşem! Dört boş teli de çaldın. Şimdi Boş Tel Treni şarkısıyla ilk resmini çiz!'),
     ],
   },
 
@@ -189,7 +189,7 @@ export const LESSONS = [
           explain: 'Do diyez yüksek 2 ile çalınır: orta parmak üçüncü parmağa yakın durur.',
         },
       },
-      outro('Şarkı zamanı!', 'Artık Sıcak Çörekler ve Küçük Kuzu şarkılarını çalabilirsin. Şarkılar bölümünde notalarla noktaları birleştir!'),
+      outro('Şarkı zamanı!', 'Önce Salıncak ve Merdiven ile ısın; sonra Sıcak Çörekler, Tembel Çocuk ve Küçük Kuzu seni bekliyor!'),
     ],
   },
 

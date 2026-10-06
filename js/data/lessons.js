@@ -200,7 +200,7 @@ export const LESSONS = [
         say: 'Şimdi sen çal! Si notasını uzun ve sakin bir şekilde tut.',
         check: { type: 'play', note: 'B4' },
       },
-      outro('İlk notan: Si!', 'Tebrikler, ilk notanı çaldın! Sırada La ve Sol var.'),
+      outro('İlk notan: Si!', 'Tebrikler, ilk notanı çaldın! Şimdi Si Treni şarkısıyla ilk resmini çiz, sonra La ve Sol notalarına geçelim.'),
     ],
   },
 
@@ -236,7 +236,7 @@ export const LESSONS = [
           explain: 'Sol için sol elin işaret, orta ve yüzük parmakları kapalı.',
         },
       },
-      outro('Şarkı zamanı!', 'Artık ilk şarkını çalabilirsin! Şarkılar bölümünde Sıcak Çörekler’i aç ve notalarla noktaları birleştir.'),
+      outro('Şarkı zamanı!', 'Artık üç nota biliyorsun! Önce Salıncak ve Merdiven ile ısın, sonra Sıcak Çörekler’i çal.'),
     ],
   },
 
@@ -272,7 +272,7 @@ export const LESSONS = [
           explain: 'İnce Re’de sol işaret parmağı (ve sağ serçe parmak) kalkar.',
         },
       },
-      outro('2 yeni şarkı!', 'Harika! Küçük Kuzu ve Neşeye Övgü şarkılarını artık çalabilirsin.'),
+      outro('3 yeni şarkı!', 'Harika! Önce kısa Tembel Çocuk şarkısını dene, sonra Küçük Kuzu ve Neşeye Övgü’yü çalabilirsin.'),
     ],
   },
 

@@ -3,6 +3,9 @@
 //
 // shape.outline: 0-100 koordinatlarında kapalı bir çokgen (noktalar bunun üzerine dağıtılır)
 // shape.details: resim tamamlanınca çizilecek ek SVG yolları (göz, bacak vb.)
+// hint: şarkı ekranında gösterilen kısa çalma ipucu
+
+import { HEART, BALLOON, HOUSE, SUN } from './shapes.js';
 
 export const seq = (str) =>
   str
@@ -14,6 +17,42 @@ export const seq = (str) =>
     });
 
 export const SONGS = [
+  {
+    id: 'si-treni',
+    title: 'Si Treni',
+    level: 'Tek nota: Si',
+    hint: 'Her notayı "tu" diyerek ayrı başlat; tren gibi: tu tu tu tuuu.',
+    bpm: 84,
+    notes: seq('B4 B4 B4 B4:2 B4 B4 B4 B4:2 B4:.5 B4:.5 B4 B4:2'),
+    shape: HEART,
+  },
+  {
+    id: 'salincak',
+    title: 'Salıncak',
+    level: 'İki nota: Si · La',
+    hint: 'Si ile La arasında sallan: yalnızca sol orta parmağın inip kalkıyor.',
+    bpm: 84,
+    notes: seq('B4 A4 B4 A4 B4 A4 B4:2 A4 A4 B4 B4 A4:2'),
+    shape: BALLOON,
+  },
+  {
+    id: 'merdiven',
+    title: 'Merdiven',
+    level: 'Üç nota: Sol · La · Si',
+    hint: 'Önce merdivenden çık, sonra in: parmaklarını teker teker kaldır ve bas.',
+    bpm: 84,
+    notes: seq('G4 A4 B4:2 B4 A4 G4:2 G4 A4 B4 A4 G4:2'),
+    shape: HOUSE,
+  },
+  {
+    id: 'tembel',
+    title: 'Tembel Çocuk',
+    level: 'Sol · La · Si · Do · Re',
+    hint: 'Uyuyor musun, tembel çocuk? İki kez Sol-La-Si-Sol, sonra iki kez Si-Do-Re.',
+    bpm: 92,
+    notes: seq('G4 A4 B4 G4 G4 A4 B4 G4 B4 C5 D5:2 B4 C5 D5:2'),
+    shape: SUN,
+  },
   {
     id: 'corekler',
     title: 'Sıcak Çörekler',

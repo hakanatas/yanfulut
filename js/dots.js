@@ -39,6 +39,7 @@ export class DotsGame {
           <div>
             <h2>${this.song.title}</h2>
             <p class="muted">Notaları çal, noktaları birleştir: gizli resim ne?</p>
+            ${this.song.hint ? `<p class="song-hint">💡 ${this.song.hint}</p>` : ''}
           </div>
           <div class="stars" aria-label="Yıldızlar"></div>
         </div>
