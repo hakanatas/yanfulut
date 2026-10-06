@@ -1,6 +1,15 @@
-# Nokta Nokta Flüt 🎶
+# Nokta Nokta Flüt ve Keman 🎶
 
-Yan flüt öğrenmek isteyenler için **çizimli, etkileşimli video dersler** ve **nota-nokta şarkı oyunları** sunan bir web uygulaması.
+Yan flüt ve keman öğrenmek isteyenler için **çizimli, etkileşimli video dersler** ve **nota-nokta şarkı oyunları** sunan bir web uygulaması.
+
+- Yan flüt: `index.html` → https://hakanatas.github.io/yanfulut/
+- Keman: `keman/index.html` → https://hakanatas.github.io/yanfulut/keman/
+
+İki enstrüman aynı altyapıyı (oynatıcı, çizim motoru, nota algılama, Google seslendirmesi, şarkı oyunu) paylaşır; dersler, şarkılar, çizimler ve parmak yerleri enstrümana özgü paketlerdedir (`js/instruments/`).
+
+## Keman
+
+8 ders: Kemanla Tanış, Kemanı Tutmak, Yay Tutuşu, Boş Teller, La Telinde Parmaklar, Re Telinde Parmaklar, Ritim ve Yay Yönleri, Mi Telinde Parmaklar. Derslerde detaylı keman ve yay çizimleri, keman çalan çocuk, yay tutuşu, yayın tellere dik çekilişi ve 1. pozisyon parmak yeri şeması (klavye üzerinde bantlarla) var. Şarkılar La ve Re majörde: Sıcak Çörekler, Küçük Kuzu, Neşeye Övgü (keman resmi çıkar) ve Daha Dün Annemizin. Örnek notalar keman tınısıyla çalınır, mikrofon en kalın Sol telinden (196 Hz) itibaren dinler; boş tel akordu kaymışsa ince akort vidası, basılı notada parmak yeri önerilir.
 
 ## Neler var?
 
@@ -53,7 +62,11 @@ Ardından tarayıcıda `http://localhost:8080` adresini aç. Mikrofon için sayf
 ## Proje yapısı
 
 ```
-index.html            Sayfa iskeleti ve elle çizim SVG filtreleri
+index.html            Yan flüt sayfası (boot('flute'))
+keman/index.html      Keman sayfası (boot('violin'))
+js/instrument.js      Etkin enstrüman; ortak modüller enstrümana özgü her şeyi buradan alır
+js/instruments/       Enstrüman paketleri: flute.js, violin.js
+js/violin/            Keman: notalar ve parmak yerleri, çizimler, dersler, şarkılar, sesler
 css/style.css         Kâğıt teması (karanlık modda kara tahta)
 js/app.js             Sayfa yönlendirme: ders yolu, parmak tablosu, akort
 js/player.js          Etkileşimli ders oynatıcısı (çizimli sahneler + gerçek video)
@@ -78,7 +91,7 @@ js/data/phrases.js    Seslendirilen kısa cümleler (soru, "Doğru!" vb.)
 Anlatımlar `js/tts/` klasöründe hazır gelir (her ses, base64 MP3 içeren küçük bir JS modülüdür; böylece dosya indirmeyi kısıtlayan gömülü görünümlerde de çalar); uygulama çalışırken internete ya da bir API anahtarına ihtiyaç duymaz. Ders metnini değiştirdiğinizde veya yeni bir ders eklediğinizde sesleri yeniden üretin:
 
 ```bash
-GOOGLE_TTS_API_KEY=anahtarınız node tools/tts.mjs
+GOOGLE_TTS_API_KEY=anahtarınız node tools/tts.mjs flute    # ya da: violin
 ```
 
 Betik yalnızca eksik cümleleri üretir, artık kullanılmayan dosyaları siler ve `js/tts/manifest.js` dosyasını günceller. Başka bir ses için `TTS_VOICE=tr-TR-Chirp3-HD-Aoede` gibi bir değer verin (Türkçe sesler: `tr-TR-Chirp3-HD-*`, `tr-TR-Wavenet-*`). API anahtarı yalnızca bu betikte kullanılır, tarayıcıya hiç gönderilmez. Tarayıcının robotik sesi hiç kullanılmaz; sesi henüz üretilmemiş bir cümle yalnızca altyazıyla gösterilir.

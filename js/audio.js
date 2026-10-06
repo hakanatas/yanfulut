@@ -1,5 +1,6 @@
 // Ses: flüte benzeyen basit bir sentezleyici ve mikrofondan perde (pitch) algılama.
 import { freqOf, noteFromMidi } from './data/notes.js';
+import { instrument } from './instrument.js';
 
 let ctx = null;
 
@@ -45,11 +46,119 @@ function breathNoise(ac) {
   return src;
 }
 
+let timbre = 'flute';
+/** Örnek notaların tınısı: 'flute' ya da 'violin' */
+export function setTimbre(name) {
+  timbre = name;
+}
+
 /**
- * Bir notayı flüt benzeri bir tınıyla çalar.
+ * Bir notayı etkin enstrümanın tınısıyla çalar.
  * @returns {{stop: () => void, done: Promise<void>}}
  */
-export function playNote(noteId, seconds = 1, { volume = 0.25, when = 0 } = {}) {
+export function playNote(noteId, seconds = 1, opts = {}) {
+  return timbre === 'violin' ? playViolinNote(noteId, seconds, opts) : playFluteNote(noteId, seconds, opts);
+}
+
+/** Keman benzeri tını: yay sürtünmesi, gövde rezonansı ve gecikmeli vibrato */
+function playViolinNote(noteId, seconds = 1, { volume = 0.22, when = 0 } = {}) {
+  const ac = audioContext();
+  const freq = freqOf(noteId);
+  const t0 = ac.currentTime + 0.02 + when;
+  const t1 = t0 + seconds;
+  const endAppSound = beginAppSound((when + seconds) * 1000);
+
+  const out = ac.createGain();
+  out.gain.setValueAtTime(0, t0);
+  out.gain.linearRampToValueAtTime(volume, t0 + 0.09);
+  out.gain.setTargetAtTime(volume * 0.8, t0 + 0.09, 0.3);
+  out.gain.setValueAtTime(volume * 0.8, Math.max(t0 + 0.1, t1 - 0.12));
+  out.gain.linearRampToValueAtTime(0, t1);
+
+  // Gövde: kemanın tahta kutusunun rezonansları
+  const hp = ac.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 170;
+  const body = [
+    [280, 4, 1.4],
+    [1100, 3, 1.2],
+    [2800, 5, 1.5],
+  ].map(([f, gain, q]) => {
+    const b = ac.createBiquadFilter();
+    b.type = 'peaking';
+    b.frequency.value = f;
+    b.gain.value = gain;
+    b.Q.value = q;
+    return b;
+  });
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 5500;
+  let node = hp;
+  for (const b of body) {
+    node.connect(b);
+    node = b;
+  }
+  node.connect(lp).connect(out).connect(ac.destination);
+
+  const vib = ac.createOscillator();
+  const vibGain = ac.createGain();
+  vib.frequency.value = 5.6;
+  vibGain.gain.setValueAtTime(0, t0);
+  vibGain.gain.setValueAtTime(0, t0 + Math.min(0.35, seconds * 0.4));
+  vibGain.gain.linearRampToValueAtTime(freq * 0.006, t0 + Math.min(0.8, seconds * 0.7));
+  vib.connect(vibGain);
+
+  const oscs = [-4, 4].map((cents) => {
+    const o = ac.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = freq;
+    o.detune.value = cents;
+    vibGain.connect(o.frequency);
+    const g = ac.createGain();
+    g.gain.value = 0.5;
+    o.connect(g).connect(hp);
+    return o;
+  });
+
+  // Yayın tele sürtünme sesi
+  const noise = breathNoise(ac);
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = Math.min(4000, freq * 3);
+  bp.Q.value = 0.8;
+  const ng = ac.createGain();
+  ng.gain.setValueAtTime(0.05, t0);
+  ng.gain.exponentialRampToValueAtTime(0.012, t0 + 0.2);
+  noise.connect(bp).connect(ng).connect(hp);
+
+  const sources = [...oscs, vib, noise];
+  sources.forEach((src) => src.start(t0));
+  sources.forEach((src) => src.stop(t1 + 0.05));
+  let resolve;
+  const done = new Promise((r) => (resolve = r));
+  oscs[0].onended = () => resolve();
+  return {
+    done,
+    stop() {
+      endAppSound();
+      const now = ac.currentTime;
+      out.gain.cancelScheduledValues(now);
+      out.gain.setValueAtTime(out.gain.value, now);
+      out.gain.linearRampToValueAtTime(0, now + 0.06);
+      sources.forEach((src) => {
+        try {
+          src.stop(now + 0.07);
+        } catch {
+          /* zaten durmuş */
+        }
+      });
+    },
+  };
+}
+
+/** Flüt benzeri tını */
+function playFluteNote(noteId, seconds = 1, { volume = 0.25, when = 0 } = {}) {
   const ac = audioContext();
   const freq = freqOf(noteId);
   const t0 = ac.currentTime + 0.02 + when;
@@ -158,10 +267,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ---------------------------------------------------------------------------
 // Perde algılama
 
+// Enstrümanın ses aralığı (perde algılamada aranan frekanslar). Flüt: Do4–Do7,
+// keman: Sol3–Mi6. setPitchRange ile enstrüman seçilirken ayarlanır.
+let pitchRange = { minFreq: 220, maxFreq: 2400 };
+export function setPitchRange(minFreq, maxFreq) {
+  pitchRange = { minFreq, maxFreq };
+}
+
 /**
  * Otokorelasyon ile temel frekans tahmini. Sessizlikte veya belirsiz sinyalde -1 döner.
  */
-export function detectPitch(buf, sampleRate) {
+export function detectPitch(buf, sampleRate, { minFreq, maxFreq } = pitchRange) {
   const n = buf.length;
   let rms = 0;
   for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
@@ -177,8 +293,8 @@ export function detectPitch(buf, sampleRate) {
   const b = buf.subarray(r1, r2);
   const size = b.length;
 
-  const minLag = Math.floor(sampleRate / 2400); // flütün üst sınırının biraz üstü
-  const maxLag = Math.min(size - 1, Math.floor(sampleRate / 220));
+  const minLag = Math.floor(sampleRate / maxFreq);
+  const maxLag = Math.min(size - 1, Math.floor(sampleRate / minFreq));
   const c = new Float32Array(maxLag + 1);
   for (let lag = 0; lag <= maxLag; lag++) {
     let sum = 0;
@@ -263,16 +379,17 @@ function appSoundActive(now) {
 /** Mikrofon açılamadığında kullanıcıya gösterilecek açıklama */
 export function micErrorMessage(err) {
   const embedded = window.top !== window.self;
+  const site = instrument().liveLabel;
   if (!navigator.mediaDevices?.getUserMedia) {
     return embedded || !window.isSecureContext
-      ? 'Bu görünümde mikrofon kullanılamıyor. Uygulamayı tarayıcıda hakanatas.github.io/yanfulut adresinden aç.'
+      ? `Bu görünümde mikrofon kullanılamıyor. Uygulamayı tarayıcıda ${site} adresinden aç.`
       : 'Bu tarayıcı mikrofonu desteklemiyor. Güncel Chrome, Safari ya da Firefox dene.';
   }
   switch (err?.name) {
     case 'NotAllowedError':
     case 'SecurityError':
       return embedded
-        ? 'Bu görünüm mikrofona izin vermiyor. Uygulamayı tarayıcıda hakanatas.github.io/yanfulut adresinden aç.'
+        ? `Bu görünüm mikrofona izin vermiyor. Uygulamayı tarayıcıda ${site} adresinden aç.`
         : 'Mikrofon izni verilmedi. Adres çubuğundaki kilit/mikrofon simgesine dokunup izin ver, sonra sayfayı yenile.';
     case 'NotFoundError':
     case 'OverconstrainedError':

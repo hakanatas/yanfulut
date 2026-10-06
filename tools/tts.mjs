@@ -1,24 +1,29 @@
 // Ders anlatımlarını Google Cloud Text-to-Speech ile MP3'e çevirir.
 //
 // Kullanım:
-//   GOOGLE_TTS_API_KEY=... node tools/tts.mjs            # eksik sesleri üret
-//   GOOGLE_TTS_API_KEY=... node tools/tts.mjs --force    # hepsini yeniden üret
-//   TTS_VOICE=tr-TR-Chirp3-HD-Aoede node tools/tts.mjs   # başka bir ses
+//   GOOGLE_TTS_API_KEY=... node tools/tts.mjs flute           # flüt derslerinin eksik seslerini üret
+//   GOOGLE_TTS_API_KEY=... node tools/tts.mjs violin          # keman dersleri
+//   GOOGLE_TTS_API_KEY=... node tools/tts.mjs flute --force   # hepsini yeniden üret
+//   TTS_VOICE=tr-TR-Chirp3-HD-Aoede node tools/tts.mjs flute  # başka bir ses
 //
-// Çıktı: js/tts/clips/<özet>.js (MP3, base64 olarak bir JS modülünün içinde) ve
-// js/tts/manifest.js. Sesler JS modülü olarak paketlenir; böylece ses dosyası
+// Çıktı: <enstrümanın ses klasörü>/clips/<özet>.js (MP3, base64 olarak bir JS modülünün
+// içinde) ve <klasör>/manifest.js (flüt: js/tts/, keman: js/violin/tts/). Sesler JS modülü olarak paketlenir; böylece ses dosyası
 // indirmeyi engelleyen gömülü görünümlerde (ör. Claude önizlemesi) de çalar.
 // Bir proxy arkasındaysanız Node 22.21+ ile NODE_USE_ENV_PROXY=1 ekleyin.
 import { mkdir, readFile, writeFile, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { LESSONS } from '../js/data/lessons.js';
 import { PHRASES, checkpointPrompt, ttsKey } from '../js/data/phrases.js';
+
+const ID = process.argv.slice(2).find((a) => !a.startsWith('--')) || 'flute';
+const INST = (await import(`../js/instruments/${ID}.js`)).default;
+INST.activate(); // nota adlandırması (ör. "kalın Sol") cümlelere yansısın
+const LESSONS = INST.lessons;
 
 const KEY = process.env.GOOGLE_TTS_API_KEY;
 const VOICE = process.env.TTS_VOICE || 'tr-TR-Chirp3-HD-Leda';
 const FORCE = process.argv.includes('--force');
-const OUT = new URL('../js/tts/clips/', import.meta.url);
-const MANIFEST = new URL('../js/tts/manifest.js', import.meta.url);
+const OUT = new URL(`../${INST.ttsDir}clips/`, import.meta.url);
+const MANIFEST = new URL(`../${INST.ttsDir}manifest.js`, import.meta.url);
 
 if (!KEY) {
   console.error('GOOGLE_TTS_API_KEY ortam değişkeni gerekli.');
@@ -78,4 +83,4 @@ for (const name of await readdir(OUT)) {
 const next = `// tools/tts.mjs tarafından üretilir, elle düzenlemeyin.\nexport const TTS = ${JSON.stringify({ voice: VOICE, files }, null, 2)};\n`;
 const prev = existsSync(MANIFEST) ? await readFile(MANIFEST, 'utf8') : '';
 if (prev !== next) await writeFile(MANIFEST, next);
-console.log(`\n${texts.length} cümle, ${made} yeni ses dosyası (${VOICE}).`);
+console.log(`\n${INST.name}: ${texts.length} cümle, ${made} yeni ses dosyası (${VOICE}).`);

@@ -89,23 +89,31 @@ export function staffStep(id) {
   return (octave - 4) * 7 + STEP_INDEX[letter] - STEP_INDEX.E;
 }
 
-/** "Si", "Fa♯", "Do'" gibi kısa ad. İnce oktav (Do5 ve üstü) kesme işaretiyle gösterilir. */
+/** "Si", "Fa♯", "Do'" gibi kısa ad. İnce oktav (Do5 ve üstü) kesme işaretiyle, kalın oktav (Do3–Si3) virgülle gösterilir. */
 export function shortName(id) {
   const { letter, alter, octave } = parseNote(id);
   const acc = alter === 1 ? '♯' : alter === -1 ? '♭' : '';
-  const marks = octave >= 6 ? "''" : octave === 5 ? "'" : '';
+  const marks = octave >= 6 ? "''" : octave === 5 ? "'" : octave <= 3 ? ',' : '';
   return SOLFEGE[letter] + acc + marks;
+}
+
+/** Flüt için oktav adları: "pes Re", "ince Re"; orta bölge (Sol4–Si4) sade */
+function fluteRegister(id, octave) {
+  if (['G4', 'G#4', 'A4', 'Bb4', 'B4'].includes(id)) return '';
+  return octave >= 6 ? 'tiz ' : octave === 5 ? 'ince ' : 'pes ';
+}
+let registerName = fluteRegister;
+
+/** Enstrüman, oktav adlandırmasını değiştirebilir (ör. keman: "kalın Sol", "Sol", "ince Mi"). */
+export function setRegisterNaming(fn) {
+  registerName = fn || fluteRegister;
 }
 
 /** "ince Re", "pes Re", "Si" gibi okunabilir ad. */
 export function longName(id) {
   const { letter, alter, octave } = parseNote(id);
   const acc = alter === 1 ? ' diyez' : alter === -1 ? ' bemol' : '';
-  const base = SOLFEGE[letter] + acc;
-  const register = octave >= 6 ? 'tiz ' : octave === 5 ? 'ince ' : 'pes ';
-  // Yeni başlayanlar için en sık kullanılan orta bölgeyi sade bırak.
-  if (['G4', 'G#4', 'A4', 'Bb4', 'B4'].includes(id)) return base;
-  return register + base;
+  return registerName(id, octave) + SOLFEGE[letter] + acc;
 }
 
 /** Başlıklar için büyük harfle başlayan ad: "İnce Re" */

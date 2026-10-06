@@ -1,10 +1,11 @@
 // Seslendirme: tools/tts.mjs ile Google Cloud Text-to-Speech'ten (tr-TR Chirp3-HD)
-// önceden üretilmiş sesler. Sesler JS modüllerinin içinde gelir (js/tts/clips/),
+// önceden üretilmiş sesler. Sesler JS modüllerinin içinde gelir (her enstrümanın
+// kendi klasöründe, ör. js/tts/clips/),
 // böylece dosya indirmeyi kısıtlayan gömülü görünümlerde de çalışır.
 // Tarayıcının robotik sesi kullanılmaz: sesi olmayan bir cümle yalnızca altyazıyla gösterilir.
 import { ttsKey } from './data/phrases.js';
 import { audioContext, audioRunning, beginAppSound } from './audio.js';
-import { TTS } from './tts/manifest.js';
+import { instrument } from './instrument.js';
 
 export { audioRunning };
 
@@ -12,7 +13,8 @@ const buffers = new Map();
 
 function loadClip(key) {
   if (!buffers.has(key)) {
-    const p = import(`./tts/clips/${key}.js`)
+    const p = instrument()
+      .tts.load(key)
       .then(({ default: b64 }) => {
         const bin = atob(b64);
         const bytes = new Uint8Array(bin.length);
@@ -27,8 +29,9 @@ function loadClip(key) {
 
 function recordingKey(text) {
   if (!text) return null;
-  const key = ttsKey(text, TTS.voice);
-  return TTS.files[key] ? key : null;
+  const { manifest } = instrument().tts;
+  const key = ttsKey(text, manifest.voice);
+  return manifest.files[key] ? key : null;
 }
 
 /** Bu cümlenin Google sesi var mı? */

@@ -4,7 +4,7 @@
 // shape.outline: 0-100 koordinatlarında kapalı bir çokgen (noktalar bunun üzerine dağıtılır)
 // shape.details: resim tamamlanınca çizilecek ek SVG yolları (göz, bacak vb.)
 
-const seq = (str) =>
+export const seq = (str) =>
   str
     .trim()
     .split(/\s+/)
@@ -146,7 +146,7 @@ export const SONGS = [
   },
 ];
 
-function starOutline(cx, cy, R, r) {
+export function starOutline(cx, cy, R, r) {
   const pts = [];
   for (let i = 0; i < 10; i++) {
     const rad = i % 2 ? r : R;

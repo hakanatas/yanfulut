@@ -1,32 +1,20 @@
 // Uygulama: sayfa yönlendirme, ders haritası, parmak tablosu ve akort aleti.
-import { lessonById } from './data/lessons.js';
-import { songById } from './data/songs.js';
-import { ALL_NOTES, longName, shortName, titleName, tipOf, KEY_NAMES, fingeringOf, KEYS } from './data/notes.js';
+// Enstrümana özgü içerik js/instruments/<id>.js paketinden gelir; sayfa boot(id) ile başlar.
+import { longName, shortName, titleName } from './data/notes.js';
+import { instrument, setInstrument } from './instrument.js';
 import { LessonPlayer } from './player.js';
 import { DotsGame } from './dots.js';
 import { progress } from './progress.js';
 import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
-import { fluteSvg, staffSvg, h } from './checkpoints.js';
+import { fingeringSvg, staffSvg, h } from './checkpoints.js';
 import { mascot } from './art.js';
 
 const view = document.getElementById('view');
 let active = null; // açık oynatıcı / oyun / dinleyici (sayfa değişince kapatılır)
+let COURSE = [];
 
-/** Ders yolu: dersler ve şarkılar sırayla */
-export const COURSE = [
-  { type: 'lesson', id: 'tanisma' },
-  { type: 'lesson', id: 'ilk-ses' },
-  { type: 'lesson', id: 'nefes' },
-  { type: 'lesson', id: 'si' },
-  { type: 'lesson', id: 'la-sol' },
-  { type: 'song', id: 'corekler' },
-  { type: 'lesson', id: 'do-re' },
-  { type: 'song', id: 'kuzu' },
-  { type: 'song', id: 'nese' },
-  { type: 'lesson', id: 'ritim' },
-  { type: 'lesson', id: 'mi' },
-  { type: 'song', id: 'yildiz' },
-];
+const lessonById = (id) => instrument().lessons.find((l) => l.id === id);
+const songById = (id) => instrument().songs.find((s) => s.id === id);
 
 const isDone = (item) => (item.type === 'lesson' ? progress.isLessonDone(item.id) : progress.songStars(item.id) > 0);
 const itemData = (item) => (item.type === 'lesson' ? lessonById(item.id) : songById(item.id));
@@ -35,7 +23,8 @@ const itemHref = (item) => (item.type === 'lesson' ? `#/ders/${item.id}` : `#/sa
 function route() {
   active?.destroy();
   active = null;
-  const [, page, id] = location.hash.replace(/^#/, '').split('/');
+  const [, page, rawId] = location.hash.replace(/^#/, '').split('/');
+  const id = rawId && decodeURIComponent(rawId);
   document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === `#/${page || ''}`));
   window.scrollTo(0, 0);
   if (page === 'ders' && lessonById(id)) return showLesson(lessonById(id));
@@ -55,8 +44,8 @@ function showHome() {
       <div class="hero">
         <svg class="hero-mascot" viewBox="40 150 220 220" aria-hidden="true"><g filter="url(#sketchy)">${mascot({ x: 140, y: 290, s: 1.2, wave: true })}</g></svg>
         <div>
-          <h1>Nokta nokta yan flüt</h1>
-          <p>Çizimli video dersleri izle, Nota ile birlikte çal. Her doğru nota bir noktayı birleştirir!</p>
+          <h1>${instrument().heroTitle}</h1>
+          <p>${instrument().heroText}</p>
           <div class="hero-actions">
             ${nextIdx >= 0 ? `<a class="btn primary" href="${itemHref(COURSE[nextIdx])}">${doneCount ? 'Devam et' : 'Başla'}: ${itemData(COURSE[nextIdx]).title} ▶</a>` : '<span class="badge">Tüm yolu tamamladın! 🎉</span>'}
           </div>
@@ -156,12 +145,13 @@ function showSong(song) {
 }
 
 // --------------------------------------------------------------------- Parmak tablosu
-function showChart(selected = 'B4') {
-  if (!ALL_NOTES.includes(selected)) selected = 'B4';
+function showChart(selected) {
+  const ALL_NOTES = instrument().notes;
+  if (!ALL_NOTES.includes(selected)) selected = instrument().defaultNote;
   view.innerHTML = '';
   const page = h(`
     <section class="chart-page">
-      <div class="page-head"><h2>Parmak Tablosu</h2></div>
+      <div class="page-head"><h2>${instrument().chartTitle}</h2></div>
       <div class="note-grid" role="tablist">
         ${ALL_NOTES.map((n) => `<button role="tab" class="note-btn" data-note="${n}" title="${longName(n)}">${shortName(n)}</button>`).join('')}
       </div>
@@ -171,15 +161,15 @@ function showChart(selected = 'B4') {
   const detail = page.querySelector('.chart-detail');
   const select = (n) => {
     page.querySelectorAll('.note-btn').forEach((b) => b.setAttribute('aria-selected', b.dataset.note === n));
-    const keys = fingeringOf(n);
+    const info = instrument().chartDetail(n);
     detail.innerHTML = `
       <div class="chart-top">
-        <div><h3>${titleName(n)}</h3><p class="muted">${tipOf(n)}</p></div>
+        <div><h3>${titleName(n)}</h3><p class="muted">${info.tip}</p></div>
         ${staffSvg(n)}
         <button class="btn primary" data-act="play">🔊 Dinle</button>
       </div>
-      ${fluteSvg(n)}
-      <ul class="key-list">${KEYS.filter((k) => keys.has(k)).map((k) => `<li>${KEY_NAMES[k]}</li>`).join('') || '<li>Hiçbir anahtar basılı değil (yalnızca flütü tut)</li>'}</ul>`;
+      ${fingeringSvg(n)}
+      <ul class="key-list">${info.items.map((t) => `<li>${t}</li>`).join('')}</ul>`;
     detail.querySelector('[data-act=play]').addEventListener('click', () => playNote(n, 1.5));
     history.replaceState(null, '', `#/parmak/${n}`);
   };
@@ -204,7 +194,7 @@ function showTuner() {
         <div class="meter level" aria-hidden="true"><span></span></div>
         <button class="btn primary" data-act="mic">🎤 Mikrofonu aç</button>
       </div>
-      <p class="hint muted">Akort için flütünün baş kısmını gövdeden biraz dışarı çekersen ses pesleşir, içeri itersen tizleşir.</p>
+      <p class="hint muted">${instrument().tunerHint}</p>
     </section>`);
   view.appendChild(page);
   const $ = (s) => page.querySelector(s);
@@ -233,26 +223,45 @@ function showTuner() {
 }
 
 // --------------------------------------------------------------------- Başlat
-// Sıfırlama iki tıklamayla onaylanır (bazı gömülü görünümlerde confirm() çalışmaz)
-const resetBtn = document.getElementById('reset-progress');
-let resetTimer = null;
-resetBtn?.addEventListener('click', () => {
-  if (!resetTimer) {
-    resetBtn.textContent = 'Emin misin? Silmek için tekrar tıkla';
-    resetTimer = setTimeout(() => {
-      resetTimer = null;
-      resetBtn.textContent = 'İlerlemeyi sıfırla';
-    }, 4000);
-    return;
+/** Uygulamayı verilen enstrümanla başlatır: boot('flute') ya da boot('violin') */
+export async function boot(id) {
+  const inst = (await import(`./instruments/${id}.js`)).default;
+  inst.activate();
+  setInstrument(inst);
+  COURSE = inst.course;
+  document.title = inst.appTitle;
+  document.querySelector('.logo-name').textContent = inst.appTitle;
+  const other = document.querySelector('.other-instrument');
+  if (other && inst.other) {
+    // Gömülü görünümde (ör. Claude önizlemesi) göreli adres çalışmaz: canlı siteye git
+    const embedded = window.top !== window.self;
+    other.href = embedded ? inst.other.live : inst.other.href;
+    if (embedded) other.target = '_blank';
+    other.textContent = `${inst.other.name} →`;
   }
-  clearTimeout(resetTimer);
-  resetTimer = null;
-  resetBtn.textContent = 'İlerleme sıfırlandı';
-  progress.reset();
-  route();
-});
-// Başka bir sayfanın içinde (ör. Claude önizlemesi) mikrofon izni verilmez: canlı siteye yönlendir
-if (window.top !== window.self) document.querySelector('.embed-note').hidden = false;
 
-window.addEventListener('hashchange', route);
-route();
+  // Sıfırlama iki tıklamayla onaylanır (bazı gömülü görünümlerde confirm() çalışmaz)
+  const resetBtn = document.getElementById('reset-progress');
+  let resetTimer = null;
+  resetBtn?.addEventListener('click', () => {
+    if (!resetTimer) {
+      resetBtn.textContent = 'Emin misin? Silmek için tekrar tıkla';
+      resetTimer = setTimeout(() => {
+        resetTimer = null;
+        resetBtn.textContent = 'İlerlemeyi sıfırla';
+      }, 4000);
+      return;
+    }
+    clearTimeout(resetTimer);
+    resetTimer = null;
+    resetBtn.textContent = 'İlerleme sıfırlandı';
+    progress.reset();
+    route();
+  });
+
+  // Başka bir sayfanın içinde (ör. Claude önizlemesi) mikrofon izni verilmez: canlı siteye yönlendir
+  if (window.top !== window.self) document.querySelector('.embed-note').hidden = false;
+
+  window.addEventListener('hashchange', route);
+  route();
+}

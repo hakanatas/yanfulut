@@ -1,11 +1,11 @@
-// İlerleme ve ayarlar tarayıcıda (localStorage) saklanır.
-const KEY = 'yanflut.progress.v1';
+// İlerleme ve ayarlar tarayıcıda (localStorage) saklanır; her enstrümanın ayrı kaydı var.
+import { instrument } from './instrument.js';
 
 const defaults = () => ({ lessons: {}, songs: {}, settings: { voice: true, captions: true, rate: 1 } });
 
 function load() {
   try {
-    const data = JSON.parse(localStorage.getItem(KEY));
+    const data = JSON.parse(localStorage.getItem(instrument().storageKey));
     if (data) return { ...defaults(), ...data, settings: { ...defaults().settings, ...data.settings } };
   } catch {
     /* gizli sekme vb. */
@@ -13,36 +13,37 @@ function load() {
   return defaults();
 }
 
-const state = load();
+let cache = null;
+const S = () => (cache ||= load());
 
 function save() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(instrument().storageKey, JSON.stringify(S()));
   } catch {
     /* saklanamadıysa uygulama yine çalışır */
   }
 }
 
 export const progress = {
-  isLessonDone: (id) => !!state.lessons[id],
+  isLessonDone: (id) => !!S().lessons[id],
   completeLesson(id) {
-    state.lessons[id] = { done: true, at: Date.now() };
+    S().lessons[id] = { done: true, at: Date.now() };
     save();
   },
-  songStars: (id) => state.songs[id]?.stars || 0,
+  songStars: (id) => S().songs[id]?.stars || 0,
   completeSong(id, stars) {
-    state.songs[id] = { stars: Math.max(stars, state.songs[id]?.stars || 0), at: Date.now() };
+    S().songs[id] = { stars: Math.max(stars, S().songs[id]?.stars || 0), at: Date.now() };
     save();
   },
   get settings() {
-    return state.settings;
+    return S().settings;
   },
   setSetting(k, v) {
-    state.settings[k] = v;
+    S().settings[k] = v;
     save();
   },
   reset() {
-    Object.assign(state, defaults());
+    Object.assign(S(), defaults());
     save();
   },
 };
