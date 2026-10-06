@@ -1,9 +1,46 @@
 // Keman için Nota Noktaları şarkıları (1. pozisyon, La majör ve Re majör).
 import { seq, starOutline, SONGS as FLUTE_SONGS } from '../data/songs.js';
+import { HEART, BALLOON, HOUSE, SUN } from '../data/shapes.js';
 
 const shapeOf = (id) => FLUTE_SONGS.find((s) => s.id === id).shape;
 
 export const SONGS = [
+  {
+    id: 'bos-tel-treni',
+    title: 'Boş Tel Treni',
+    level: 'Boş teller: La · Mi · Re',
+    hint: 'Hiç parmak basma! Yalnızca yayı bir telden diğerine taşı.',
+    bpm: 80,
+    notes: seq('A4 A4 E5 E5 A4 A4 D4:2 D4 D4 A4 A4 D4:2'),
+    shape: HEART,
+  },
+  {
+    id: 'salincak',
+    title: 'Salıncak',
+    level: 'İki nota: Si · La',
+    hint: 'La telinde 1. parmağını kaldır, bas: Si, La, Si, La… Her notada yay yönünü değiştir.',
+    bpm: 80,
+    notes: seq('B4 A4 B4 A4 B4 A4 B4:2 A4 A4 B4 B4 A4:2'),
+    shape: BALLOON,
+  },
+  {
+    id: 'merdiven',
+    title: 'Merdiven',
+    level: 'Üç nota: La · Si · Do♯',
+    hint: 'La telinde parmaklarını teker teker koy (1, 2), sonra teker teker kaldır.',
+    bpm: 80,
+    notes: seq('A4 B4 C#5:2 C#5 B4 A4:2 A4 B4 C#5 B4 A4:2'),
+    shape: HOUSE,
+  },
+  {
+    id: 'tembel',
+    title: 'Tembel Çocuk',
+    level: 'La teli + boş Mi',
+    hint: 'Uyuyor musun, tembel çocuk? İki kez La-Si-Do♯-La, sonra iki kez Do♯-Re-Mi.',
+    bpm: 88,
+    notes: seq('A4 B4 C#5 A4 A4 B4 C#5 A4 C#5 D5 E5:2 C#5 D5 E5:2'),
+    shape: SUN,
+  },
   {
     id: 'corekler',
     title: 'Sıcak Çörekler',
