@@ -3,7 +3,7 @@
 import { distributeDots } from './data/songs.js';
 import { longName, midiOf, shortName, noteFromMidi, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playMelody, playChime, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
-import { fingeringSvg, staffSvg, h, heardText } from './checkpoints.js';
+import { fingeringSvg, fingeringToggle, staffSvg, h, heardText } from './checkpoints.js';
 import { progress } from './progress.js';
 import { say } from './voice.js';
 import { PHRASES } from './data/phrases.js';
@@ -111,9 +111,10 @@ export class DotsGame {
       .map((n, i) => `<span class="chip" data-i="${i}" style="--w:${Math.min(2, n.beats)}">${shortName(n.note)}</span>`)
       .join('');
 
+    this.el.querySelector('.dots-controls').appendChild(fingeringToggle(() => this.update(), 'btn ghost'));
     this.el.querySelector('.dots-controls').addEventListener('click', (e) => {
       const btn = e.target.closest('button');
-      if (!btn) return;
+      if (!btn || btn.classList.contains('fingering-toggle')) return;
       if (btn.dataset.act === 'reset') return this.reset();
       this.setMode(btn.dataset.mode);
     });

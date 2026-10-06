@@ -45,6 +45,19 @@ Mikrofon, hedef notaya ±70 sent yakınlığı doğru sayar; yeni başlayanları
 
 Üç oyun modu var: **Flütle çal** (mikrofon), **Dokunarak çal** (ekrandaki nota düğmeleri, flütü yanında olmayanlar için) ve **Dinle ve izle** (ezgiyi çalıp resmi kendisi çizer). Hata sayısına göre 1 ile 3 arasında yıldız kazanılır.
 
+### Antrenman
+Resim yok; hedef doğru notayı **doğru süre** boyunca çalmak. Parça gerçek nota yazısıyla gösterilir: 4/4 ölçüler, her vuruşun altında sayı (1 2 3 4), her notanın altında uzunluğunu gösteren süre çubuğu ve aynı vuruştaki sekizlikler kirişle bağlı.
+
+- **Kendi hızımda:** Her nota süresi kadar (vuruş × tempo) tutulunca geçilir; vuruş noktaları tutarken dolar. Erken bırakılırsa "Kısa kaldı: 2 vuruş tutmalısın" denir ve nota tekrar istenir.
+- **Tempolu:** Dört vuruşluk metronom sayımından sonra okuma çizgisi ilerler; her nota hem nota hem süre için puanlanır (yeşil: tam, sarı: süre kısa, kırmızı: kaçtı).
+- Mikrofonla ya da ekrandaki tuşa basılı tutarak çalınır; sonunda doğru nota ve tam süre sayısı gösterilir.
+
+### Yalnızca porte
+"🎼 Yalnızca porte" düğmesi flüt/keman resmini gizler; antrenmanlarda, şarkılarda ve derslerdeki "Şimdi sen çal" kartlarında yalnızca nota yazısı kalır. Seçim hatırlanır.
+
+### Öğrenilmemiş nota yok
+Her ders öğrettiği notaları `teaches` alanında listeler. `node tools/check-course.mjs` ders yolunu baştan sona yürür ve hiçbir alıştırmanın (şarkı, antrenman, "Şimdi sen çal") o ana kadar öğretilmemiş bir nota kullanmadığını, antrenmanların 4/4 ölçülere tam bölündüğünü denetler.
+
 ### 3. Yardımcı araçlar
 - **Parmak tablosu:** Pes Do'dan tiz Do'ya kadar her nota için flüt üzerinde parmak pozisyonu, porte görünümü ve örnek ses.
 - **Akort:** Mikrofonla çalınan notayı ve kaç sent pes/tiz olduğunu gösterir.
@@ -79,6 +92,10 @@ js/checkpoints.js     Duraklar: soru, nota çalma, ses tutma, nefes
 js/sketch.js          Çizim motoru: SVG'leri çizgi çizgi canlandırır
 js/art.js             Çizimler: flüt, porte, maskot, şişe, dudaklar…
 js/dots.js            Nota Noktaları oyunu
+js/drill.js           Antrenman: nota + süre çalışması (kendi hızımda / tempolu)
+js/data/drills.js     Flüt antrenmanları (keman: js/violin/drills.js)
+js/data/shapes.js     Kısa şarkıların resimleri
+tools/check-course.mjs  Ders yolu denetimi
 js/audio.js           Flüt benzeri sentezleyici ve mikrofonla perde algılama
 js/voice.js           Seslendirme: önceden üretilmiş Google TTS sesleri, yoksa tarayıcı sesi
 js/tts/               Google TTS ile üretilmiş anlatım sesleri (JS modülü içinde MP3) ve manifest.js

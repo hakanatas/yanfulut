@@ -15,9 +15,32 @@ export const h = (html) => {
   return t.content.firstElementChild;
 };
 
-/** Etkin enstrümanın küçük parmak pozisyonu çizimi */
+export const fingeringShown = () => progress.settings.showFingering !== false;
+
+/** Etkin enstrümanın küçük parmak pozisyonu çizimi (kullanıcı gizlediyse boş: yalnızca porte kalır) */
 export function fingeringSvg(note, opts) {
-  return instrument().fingeringSvg(note, opts);
+  return fingeringShown() ? instrument().fingeringSvg(note, opts) : '';
+}
+
+/** Parmak resmini gösteren/gizleyen düğme; seçim hatırlanır ve her yerde geçerli olur */
+export function fingeringToggle(onChange, cls = 'chip-btn standalone') {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `${cls} fingering-toggle`;
+  const label = () => {
+    const on = fingeringShown();
+    btn.textContent = on ? `🎼 Yalnızca porte` : `🖐 ${instrument().name} resmini göster`;
+    btn.title = on ? `${instrument().name} resmini gizle, yalnızca nota yazısıyla çal` : 'Parmak yerlerini gösteren resmi geri getir';
+    btn.setAttribute('aria-pressed', String(!on));
+    document.body.classList.toggle('no-fingering', !on);
+  };
+  btn.addEventListener('click', () => {
+    progress.setSetting('showFingering', !fingeringShown());
+    label();
+    onChange?.();
+  });
+  label();
+  return btn;
 }
 
 export function staffSvg(note) {
@@ -151,12 +174,16 @@ function playCheck(card, c, { finish, onCleanup }) {
     <div class="cp-tag">Şimdi sen çal</div>
     <h3 class="cp-title big">${titleName(c.note)}</h3>
     <div class="cp-visual">${staffSvg(c.note)}${fingeringSvg(c.note)}</div>
+    <div class="cp-toggle-row"></div>
     <div class="cp-actions">
       <button class="btn" data-act="listen">🔊 Dinle</button>
       <button class="btn primary" data-act="mic">🎤 Çalmaya başla</button>
     </div>
     <p class="cp-feedback" aria-live="polite"></p>
     <button class="link" data-act="skip">Mikrofonsuz devam et</button>`;
+  card.querySelector('.cp-toggle-row').appendChild(
+    fingeringToggle(() => (card.querySelector('.cp-visual').innerHTML = staffSvg(c.note) + fingeringSvg(c.note)), 'link'),
+  );
   const fb = card.querySelector('.cp-feedback');
   const matcher = new NoteMatcher({
     holdMs: 700,

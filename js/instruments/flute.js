@@ -1,6 +1,7 @@
 // Yan flüt paketi: dersler, şarkılar, parmak pozisyonu çizimi ve seslendirme.
 import { LESSONS } from '../data/lessons.js';
 import { SONGS } from '../data/songs.js';
+import { DRILLS } from '../data/drills.js';
 import { ALL_NOTES, fingeringOf, tipOf, KEYS, KEY_NAMES, longName, setRegisterNaming } from '../data/notes.js';
 import { flute } from '../art.js';
 import { setPitchRange, setTimbre } from '../audio.js';
@@ -21,22 +22,30 @@ export default {
   other: { name: 'Keman', href: 'keman/', live: 'https://hakanatas.github.io/yanfulut/keman/' },
   lessons: LESSONS,
   songs: SONGS,
+  drills: DRILLS,
   course: [
     { type: 'lesson', id: 'tanisma' },
     { type: 'lesson', id: 'ilk-ses' },
     { type: 'lesson', id: 'nefes' },
     { type: 'lesson', id: 'si' },
+    { type: 'lesson', id: 'ritim' },
+    { type: 'drill', id: 'si-sureler' },
     { type: 'song', id: 'si-treni' },
     { type: 'lesson', id: 'la-sol' },
+    { type: 'drill', id: 'si-la-sol' },
     { type: 'song', id: 'salincak' },
     { type: 'song', id: 'merdiven' },
+    { type: 'drill', id: 'uzun-notalar' },
     { type: 'song', id: 'corekler' },
     { type: 'lesson', id: 'do-re' },
+    { type: 'drill', id: 'bes-nota' },
     { type: 'song', id: 'tembel' },
+    { type: 'drill', id: 'sekizlikler' },
     { type: 'song', id: 'kuzu' },
     { type: 'song', id: 'nese' },
-    { type: 'lesson', id: 'ritim' },
     { type: 'lesson', id: 'mi' },
+    { type: 'drill', id: 'pes-notalar' },
+    { type: 'drill', id: 'oktav' },
     { type: 'song', id: 'yildiz' },
   ],
   notes: ALL_NOTES,
