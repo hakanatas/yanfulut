@@ -13,14 +13,18 @@ const attrs = (o) =>
 export const el = (tag, a = {}, inner = '') => `<${tag} ${attrs(a)}>${inner}</${tag}>`;
 export const group = (inner, a = {}) => el('g', a, inner);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-const P = (d, cls = 'ink', extra = {}) => el('path', { d, class: cls, ...extra });
-const C = (cx, cy, r, cls = 'ink', extra = {}) => el('circle', { cx, cy, r, class: cls, ...extra });
-const E = (cx, cy, rx, ry, cls = 'ink', extra = {}) => el('ellipse', { cx, cy, rx, ry, class: cls, ...extra });
+// Not: CSS sınıfları stroke-width ve opacity özniteliklerini ezdiği için bunlar style ile verilir.
+export const P = (d, cls = 'ink', { 'stroke-width': sw, opacity, style, ...extra } = {}) => {
+  const css = (sw != null ? `stroke-width:${sw}px;` : '') + (opacity != null ? `opacity:${opacity};` : '') + (style || '');
+  return el('path', { d, class: cls, ...extra, style: css || undefined });
+};
+export const C = (cx, cy, r, cls = 'ink', extra = {}) => el('circle', { cx, cy, r, class: cls, ...extra });
+export const E = (cx, cy, rx, ry, cls = 'ink', extra = {}) => el('ellipse', { cx, cy, rx, ry, class: cls, ...extra });
 /** Yerel koordinatlarda çizilmiş bir figürü konumlandırır */
-const place = (x, y, s, inner, flip = false) =>
+export const place = (x, y, s, inner, flip = false) =>
   group(inner, { transform: `translate(${x} ${y}) scale(${flip ? -s : s} ${s})` });
 /** Kalın, kenar çizgili uzuv (kol, bacak): önce mürekkep, üstüne renk */
-const limb = (d, w, fillCls) => P(d, 'limb-o', { 'stroke-width': w + 5 }) + P(d, `limb-i ${fillCls}`, { 'stroke-width': w });
+export const limb = (d, w, fillCls) => P(d, 'limb-o', { 'stroke-width': w + 5 }) + P(d, `limb-i ${fillCls}`, { 'stroke-width': w });
 
 export function text(str, x, y, { size = 28, anchor = 'middle', cls = 'ink-fill', weight } = {}) {
   return el('text', { x, y, 'font-size': size, 'text-anchor': anchor, class: `hand ${cls}`, 'font-weight': weight }, esc(str));

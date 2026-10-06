@@ -29,6 +29,16 @@
   --glass-hi: #f4fbff;
   --glass-lo: #94bcd8;
   --leaf: #7cc47f;
+  --varnish: #c06a2b;
+  --varnish-hi: #f0a656;
+  --varnish-lo: #6f3416;
+  --ebony: #2e2724;
+  --maple: #ecd2a2;
+  --string: #b9c2cc;
+  --bow-hair: #f4efe2;
+  --bow-stick: #7a4a26;
+  --amber: #e2a336;
+  --pearl: #f3f0ff;
   --radius: 18px;
   --font-ui: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
   --font-hand: 'Patrick Hand', 'Comic Sans MS', 'Chalkboard SE', cursive;
@@ -61,6 +71,16 @@
     --glass-hi: #6c97a8;
     --glass-lo: #24404b;
     --leaf: #4f8f58;
+    --varnish: #8d4a1f;
+    --varnish-hi: #c47a3a;
+    --varnish-lo: #4a2210;
+    --ebony: #120e0c;
+    --maple: #b39466;
+    --string: #c9d2da;
+    --bow-hair: #e8e2d2;
+    --bow-stick: #a06a3c;
+    --amber: #c88d2a;
+    --pearl: #e8e4ff;
     color-scheme: dark;
   }
 }
@@ -90,6 +110,16 @@
   --glass-hi: #6c97a8;
   --glass-lo: #24404b;
   --leaf: #4f8f58;
+  --varnish: #8d4a1f;
+  --varnish-hi: #c47a3a;
+  --varnish-lo: #4a2210;
+  --ebony: #120e0c;
+  --maple: #b39466;
+  --string: #c9d2da;
+  --bow-hair: #e8e2d2;
+  --bow-stick: #a06a3c;
+  --amber: #c88d2a;
+  --pearl: #e8e4ff;
   color-scheme: dark;
 }
 
@@ -137,6 +167,7 @@ h1, h2, h3 { line-height: 1.15; margin: 0 0 0.3em; }
 .nav a { text-decoration: none; padding: 4px 14px; border-radius: 999px; font-weight: 600; }
 .nav a:hover { background: var(--paper-2); }
 .nav a.active { background: var(--ink); color: var(--paper); }
+.nav a.other-instrument { border: 2px dashed var(--ink); }
 
 .embed-note {
   margin: 12px auto 0; max-width: 1008px; width: calc(100% - 32px);
@@ -220,6 +251,19 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .print { fill: none; stroke: var(--paper); stroke-width: 1.1; stroke-linecap: round; opacity: 0.85; }
 .board-bg .staff-deco { stroke: var(--ink); stroke-width: 1.2; fill: none; opacity: 0.08; }
 .board-bg .deco { fill: var(--ink); opacity: 0.07; stroke: none; }
+.varnish { fill: url(#g-varnish); }
+.ebony { fill: var(--ebony); }
+.maple { fill: var(--maple); }
+.amber { fill: var(--amber); }
+.pearl { fill: var(--pearl); }
+.string { stroke: var(--string); fill: none; stroke-linecap: round; }
+.bow-hair { stroke: var(--bow-hair); stroke-width: 3; fill: none; stroke-linecap: round; }
+.bow-stick { stroke: var(--bow-stick); stroke-width: 5; fill: none; stroke-linecap: round; }
+.tape { stroke: var(--sun); stroke-width: 3; opacity: 0.85; }
+.paper-fill { fill: var(--paper); }
+.st-varnish { stop-color: var(--varnish); }
+.st-varnish-hi { stop-color: var(--varnish-hi); }
+.st-varnish-lo { stop-color: var(--varnish-lo); }
 .st-metal { stop-color: var(--metal); }
 .st-metal-hi { stop-color: var(--metal-hi); }
 .st-metal-lo { stop-color: var(--metal-lo); }
@@ -386,6 +430,8 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .cp-visual { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .mini-staff { width: 130px; }
 .mini-flute { width: min(360px, 100%); }
+.mini-fingerboard { width: 120px; }
+.chart-detail .mini-fingerboard { width: 200px; margin: 8px auto; display: block; }
 .mic { margin: 8px auto; max-width: 340px; }
 .meter, .hold { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 12%, transparent); overflow: hidden; margin: 6px 0; }
 .meter span, .hold span { display: block; height: 100%; width: 0; background: var(--sky); transition: width 0.08s; }

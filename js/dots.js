@@ -3,7 +3,7 @@
 import { distributeDots } from './data/songs.js';
 import { longName, midiOf, shortName, noteFromMidi, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playMelody, playChime, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
-import { fluteSvg, staffSvg, h, heardText } from './checkpoints.js';
+import { fingeringSvg, staffSvg, h, heardText } from './checkpoints.js';
 import { progress } from './progress.js';
 import { say } from './voice.js';
 import { PHRASES } from './data/phrases.js';
@@ -260,7 +260,7 @@ export class DotsGame {
     this.el.querySelector('.chip.current')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
     const n = this.song.notes[i];
     this.$('.target-name').textContent = n ? titleName(n.note) : '🎉';
-    this.$('.target-visual').innerHTML = n ? staffSvg(n.note) + fluteSvg(n.note) : '';
+    this.$('.target-visual').innerHTML = n ? staffSvg(n.note) + fingeringSvg(n.note) : '';
     this.$('.hold span').style.width = '0%';
   }
 

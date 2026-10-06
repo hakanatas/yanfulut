@@ -1,5 +1,6 @@
 // Videoyu durduran etkileşimli duraklar: soru, nota çalma, ses tutma, nefes egzersizi.
-import { flute, staff } from './art.js';
+import { staff } from './art.js';
+import { instrument } from './instrument.js';
 import { longName, midiOf, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { say, stopSpeaking } from './voice.js';
@@ -14,9 +15,9 @@ export const h = (html) => {
   return t.content.firstElementChild;
 };
 
-export function fluteSvg(note, { highlight = [] } = {}) {
-  return `<svg class="mini-flute" viewBox="0 0 680 130" role="img" aria-label="${longName(note)} parmak pozisyonu">
-    <g filter="url(#sketchy-sm)">${flute({ x: 20, y: 62, w: 640, note, highlight })}</g></svg>`;
+/** Etkin enstrümanın küçük parmak pozisyonu çizimi */
+export function fingeringSvg(note, opts) {
+  return instrument().fingeringSvg(note, opts);
 }
 
 export function staffSvg(note) {
@@ -95,11 +96,12 @@ function quiz(card, c, { finish }) {
 
 /** Mikrofonu başlatan ve durum/göstergeyi yöneten ortak parça */
 /** Akort geri bildirimi: ±25 sentten küçük sapmalar için boş */
-export function tuningAdvice(cents) {
+export function tuningAdvice(cents, note) {
   if (Math.abs(cents) <= 25) return '';
+  const pick = (adv) => (typeof adv === 'function' ? adv(note) : adv);
   return cents > 0
-    ? `Ses biraz tiz (+${cents} sent): havayı biraz yumuşat ya da flütün baş kısmını hafifçe dışarı çek.`
-    : `Ses biraz pes (${cents} sent): havayı biraz hızlandır ve dudak açıklığını küçült.`;
+    ? `Ses biraz tiz (+${cents} sent): ${pick(instrument().sharpAdvice)}.`
+    : `Ses biraz pes (${cents} sent): ${pick(instrument().flatAdvice)}.`;
 }
 
 /** Mikrofondan duyulan sesin kısa açıklaması (hedef verilirse ona göre) */
@@ -148,7 +150,7 @@ function playCheck(card, c, { finish, onCleanup }) {
   card.innerHTML = `
     <div class="cp-tag">Şimdi sen çal</div>
     <h3 class="cp-title big">${titleName(c.note)}</h3>
-    <div class="cp-visual">${staffSvg(c.note)}${fluteSvg(c.note)}</div>
+    <div class="cp-visual">${staffSvg(c.note)}${fingeringSvg(c.note)}</div>
     <div class="cp-actions">
       <button class="btn" data-act="listen">🔊 Dinle</button>
       <button class="btn primary" data-act="mic">🎤 Çalmaya başla</button>
@@ -162,7 +164,7 @@ function playCheck(card, c, { finish, onCleanup }) {
     onMatch: (t, info) => {
       playChime();
       voiceSay(PHRASES.great);
-      const advice = tuningAdvice(info.tuning);
+      const advice = tuningAdvice(info.tuning, c.note);
       fb.innerHTML = successBlock(`Harika! Bu bir ${longName(c.note)}!`) + (advice ? `<span>${advice}</span>` : '');
       setTimeout(() => finish({ skipped: false }), advice ? 3200 : 1400);
     },
@@ -220,7 +222,7 @@ function listenAny(card, c, { finish, onCleanup }) {
           matched = true;
           playChime();
           voiceSay(PHRASES.great);
-          fb.innerHTML = successBlock('İşte bu! Flüt sesi!');
+          fb.innerHTML = successBlock(`İşte bu! ${instrument().name} sesi!`);
           setTimeout(() => finish({ skipped: false }), 1400);
         }
       } else {
