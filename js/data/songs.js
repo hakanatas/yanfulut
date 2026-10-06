@@ -11,6 +11,7 @@ export const seq = (str) =>
   str
     .trim()
     .split(/\s+/)
+    .filter((tok) => tok !== '|') // ölçü çizgisi, yalnızca okunabilirlik için
     .map((tok) => {
       const [note, beats] = tok.split(':');
       return { note, beats: beats ? Number(beats) : 1 };

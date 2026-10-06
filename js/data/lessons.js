@@ -43,6 +43,7 @@ const outro = (msg, say) => ({
 export const LESSONS = [
   {
     id: 'tanisma',
+    teaches: [],
     title: 'Yan Flütle Tanış',
     summary: 'Flütün parçaları ve nasıl tutulduğu',
     scenes: [
@@ -93,6 +94,7 @@ export const LESSONS = [
 
   {
     id: 'ilk-ses',
+    teaches: [],
     title: 'İlk Ses: Şişe Gibi Üfle',
     summary: 'Dudak pozisyonu ve ilk ses',
     scenes: [
@@ -139,6 +141,7 @@ export const LESSONS = [
 
   {
     id: 'nefes',
+    teaches: [],
     title: 'Nefes ve Duruş',
     summary: 'Karın nefesi ve doğru duruş',
     scenes: [
@@ -178,6 +181,7 @@ export const LESSONS = [
 
   {
     id: 'si',
+    teaches: ['B4'],
     title: 'İlk Nota: Si',
     summary: 'Si notasının parmak pozisyonu',
     scenes: [
@@ -200,12 +204,13 @@ export const LESSONS = [
         say: 'Şimdi sen çal! Si notasını uzun ve sakin bir şekilde tut.',
         check: { type: 'play', note: 'B4' },
       },
-      outro('İlk notan: Si!', 'Tebrikler, ilk notanı çaldın! Şimdi Si Treni şarkısıyla ilk resmini çiz, sonra La ve Sol notalarına geçelim.'),
+      outro('İlk notan: Si!', 'Tebrikler, ilk notanı çaldın! Sırada nota süreleri var: Si notasını kısa ve uzun çalmayı öğreneceğiz.'),
     ],
   },
 
   {
     id: 'la-sol',
+    teaches: ['A4', 'G4'],
     title: 'La ve Sol',
     summary: 'İki yeni nota ve ilk ezgi',
     scenes: [
@@ -242,6 +247,7 @@ export const LESSONS = [
 
   {
     id: 'do-re',
+    teaches: ['C5', 'D5'],
     title: 'İnce Do ve İnce Re',
     summary: 'Başparmağı kaldırmayı öğren',
     scenes: [
@@ -278,6 +284,7 @@ export const LESSONS = [
 
   {
     id: 'ritim',
+    teaches: [],
     title: 'Nota Süreleri',
     summary: 'Birlik, ikilik, dörtlük, sekizlik',
     scenes: [
@@ -291,14 +298,14 @@ export const LESSONS = [
         draw:
           group(noteSymbol(170, 175, 30, 'whole')) + beatDots(170, 4) + text('birlik', 170, 290, { size: 30 }) + text('4 vuruş', 170, 330, { size: 24, cls: 'muted-fill' }) +
           group(noteSymbol(330, 175, 30, 'half')) + beatDots(330, 2) + text('ikilik', 330, 290, { size: 30 }) + text('2 vuruş', 330, 330, { size: 24, cls: 'muted-fill' }),
-        sound: { melody: ['G4'], bpm: 25 },
+        sound: { melody: ['B4'], bpm: 25 },
         say: 'Birlik nota içi boş bir yuvarlaktır ve dört vuruş sürer. İkilik notanın bir sapı vardır ve iki vuruş sürer.',
       },
       {
         draw:
           group(noteSymbol(490, 175, 30, 'quarter')) + beatDots(490, 1) + text('dörtlük', 490, 290, { size: 30 }) + text('1 vuruş', 490, 330, { size: 24, cls: 'muted-fill' }) +
           group(noteSymbol(640, 175, 30, 'eighth')) + beatDots(640, 0.5) + text('sekizlik', 640, 290, { size: 30 }) + text('yarım vuruş', 640, 330, { size: 24, cls: 'muted-fill' }),
-        sound: { melody: ['G4', 'G4', 'G4', 'G4'], bpm: 100 },
+        sound: { melody: ['B4', 'B4', 'B4', 'B4'], bpm: 100 },
         say: 'Dörtlük nota içi dolu ve sapılıdır, bir vuruş sürer. Sekizliğin bir de bayrağı vardır, yarım vuruş sürer.',
         check: {
           type: 'quiz',
@@ -318,12 +325,13 @@ export const LESSONS = [
           explain: 'İkilik 2 vuruş, dörtlük 1 vuruş sürer.',
         },
       },
-      outro('Ritim tamam!', 'Süper! Şarkılarda notaların sürelerine dikkat ederek çalmayı unutma.'),
+      outro('Ritim tamam!', 'Süper! Şimdi antrenmanda Si notasını doğru sürelerle çal, sonra Si Treni ile ilk resmini çiz.'),
     ],
   },
 
   {
     id: 'mi',
+    teaches: ['D4', 'E4', 'E5'],
     title: 'Pes Re, Mi ve İnce Mi',
     summary: 'Pes notalar ve oktav atlama',
     scenes: [

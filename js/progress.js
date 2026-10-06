@@ -1,7 +1,7 @@
 // İlerleme ve ayarlar tarayıcıda (localStorage) saklanır; her enstrümanın ayrı kaydı var.
 import { instrument } from './instrument.js';
 
-const defaults = () => ({ lessons: {}, songs: {}, settings: { voice: true, captions: true, rate: 1 } });
+const defaults = () => ({ lessons: {}, songs: {}, settings: { voice: true, captions: true, rate: 1, showFingering: true } });
 
 function load() {
   try {

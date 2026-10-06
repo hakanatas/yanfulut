@@ -234,6 +234,21 @@ function playFluteNote(noteId, seconds = 1, { volume = 0.25, when = 0 } = {}) {
   };
 }
 
+/** Metronom tıkı (vurgulu: ölçünün ilk vuruşu) */
+export function playClick(accent = false) {
+  const ac = audioContext();
+  const t0 = ac.currentTime + 0.005;
+  beginAppSound(40);
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.frequency.value = accent ? 1600 : 1100;
+  g.gain.setValueAtTime(0.25, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+  o.connect(g).connect(ac.destination);
+  o.start(t0);
+  o.stop(t0 + 0.06);
+}
+
 /** Kısa bir başarı melodisi. */
 export function playChime() {
   ['G5', 'B5', 'D6'].forEach((n, i) => playNote(n, 0.18, { volume: 0.12, when: i * 0.09 }));

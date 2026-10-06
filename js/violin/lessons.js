@@ -37,6 +37,7 @@ const openString = (id, note, name, say) => ({
 export const LESSONS = [
   {
     id: 'tanisma',
+    teaches: [],
     title: 'Kemanla Tanış',
     summary: 'Kemanın ve yayın parçaları',
     scenes: [
@@ -83,6 +84,7 @@ export const LESSONS = [
 
   {
     id: 'tutus',
+    teaches: [],
     title: 'Kemanı Tutmak',
     summary: 'Duruş ve kemanın omuza yerleşmesi',
     scenes: [
@@ -111,6 +113,7 @@ export const LESSONS = [
 
   {
     id: 'yay',
+    teaches: [],
     title: 'Yay Tutuşu',
     summary: 'Yayı tutmak ve tele dik çekmek',
     scenes: [
@@ -148,6 +151,7 @@ export const LESSONS = [
 
   {
     id: 'bos-teller',
+    teaches: ['A4', 'D4', 'E5', 'G3'],
     title: 'Boş Teller',
     summary: 'Sol, Re, La ve Mi telleri',
     scenes: [
@@ -164,12 +168,13 @@ export const LESSONS = [
       openString('D', 'D4', 'Re', 'Şimdi Re teli. Sağ dirseğini biraz kaldır ki yay yalnızca Re teline değsin.'),
       openString('E', 'E5', 'Mi', 'Mi teli en ince teldir; sesi parlak çıkar. Dirseğini biraz indir ve yayı hafifçe çek.'),
       openString('G', 'G3', 'Sol', 'Son olarak en kalın tel, Sol teli. Dirseğini en yükseğe kaldır ve yayı sakin çek.'),
-      outro('Dört tel tamam!', 'Muhteşem! Dört boş teli de çaldın. Şimdi Boş Tel Treni şarkısıyla ilk resmini çiz!'),
+      outro('Dört tel tamam!', 'Muhteşem! Dört boş teli de çaldın. Sırada nota süreleri ve yay yönleri var.'),
     ],
   },
 
   {
     id: 'la-teli',
+    teaches: ['B4', 'C#5', 'D5'],
     title: 'La Telinde Parmaklar',
     summary: 'Si, Do diyez ve Re',
     scenes: [
@@ -195,6 +200,7 @@ export const LESSONS = [
 
   {
     id: 're-teli',
+    teaches: ['E4', 'F#4', 'G4'],
     title: 'Re Telinde Parmaklar',
     summary: 'Mi, Fa diyez ve Sol',
     scenes: [
@@ -220,6 +226,7 @@ export const LESSONS = [
 
   {
     id: 'ritim',
+    teaches: [],
     title: 'Ritim ve Yay Yönleri',
     summary: 'Nota süreleri, aşağı ve yukarı yay',
     scenes: [
@@ -262,12 +269,13 @@ export const LESSONS = [
           explain: 'İkilik 2 vuruş, dörtlük 1 vuruş sürer.',
         },
       },
-      outro('Ritim tamam!', 'Süper! Şarkılarda hem nota sürelerine hem de yay yönlerine dikkat et.'),
+      outro('Ritim tamam!', 'Süper! Şimdi antrenmanda boş telleri doğru sürelerle çal, sonra Boş Tel Treni ile ilk resmini çiz.'),
     ],
   },
 
   {
     id: 'mi-teli',
+    teaches: ['F#5', 'G#5', 'A5'],
     title: 'Mi Telinde Parmaklar',
     summary: 'Fa diyez, Sol diyez ve La',
     scenes: [

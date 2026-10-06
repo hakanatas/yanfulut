@@ -1,9 +1,10 @@
 // Uygulama: sayfa yönlendirme, ders haritası, parmak tablosu ve akort aleti.
 // Enstrümana özgü içerik js/instruments/<id>.js paketinden gelir; sayfa boot(id) ile başlar.
-import { longName, shortName, titleName } from './data/notes.js';
+import { longName, shortName, titleName, midiOf } from './data/notes.js';
 import { instrument, setInstrument } from './instrument.js';
 import { LessonPlayer } from './player.js';
 import { DotsGame } from './dots.js';
+import { DrillGame } from './drill.js';
 import { progress } from './progress.js';
 import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, staffSvg, h } from './checkpoints.js';
@@ -15,10 +16,12 @@ let COURSE = [];
 
 const lessonById = (id) => instrument().lessons.find((l) => l.id === id);
 const songById = (id) => instrument().songs.find((s) => s.id === id);
+const drillById = (id) => instrument().drills.find((d) => d.id === id);
 
-const isDone = (item) => (item.type === 'lesson' ? progress.isLessonDone(item.id) : progress.songStars(item.id) > 0);
-const itemData = (item) => (item.type === 'lesson' ? lessonById(item.id) : songById(item.id));
-const itemHref = (item) => (item.type === 'lesson' ? `#/ders/${item.id}` : `#/sarki/${item.id}`);
+const starsOf = (item) => (item.type === 'drill' ? progress.songStars(`drill-${item.id}`) : item.type === 'song' ? progress.songStars(item.id) : 0);
+const isDone = (item) => (item.type === 'lesson' ? progress.isLessonDone(item.id) : starsOf(item) > 0);
+const itemData = (item) => ({ lesson: lessonById, song: songById, drill: drillById })[item.type](item.id);
+const itemHref = (item) => ({ lesson: '#/ders/', song: '#/sarki/', drill: '#/antrenman/' })[item.type] + item.id;
 
 function route() {
   active?.destroy();
@@ -29,6 +32,8 @@ function route() {
   window.scrollTo(0, 0);
   if (page === 'ders' && lessonById(id)) return showLesson(lessonById(id));
   if (page === 'sarki' && songById(id)) return showSong(songById(id));
+  if (page === 'antrenman' && drillById(id)) return showDrill(drillById(id));
+  if (page === 'antrenman') return showDrillList();
   if (page === 'parmak') return showChart(id);
   if (page === 'akort') return showTuner();
   showHome();
@@ -61,15 +66,18 @@ function showHome() {
   COURSE.forEach((item, i) => {
     const data = itemData(item);
     const done = isDone(item);
-    const stars = item.type === 'song' ? progress.songStars(item.id) : 0;
+    const stars = starsOf(item);
+    const icon = { song: '★', drill: '♩', lesson: done ? '✓' : '♪' }[item.type];
+    const kind = { song: 'Nota Noktaları', drill: 'Antrenman', lesson: `Ders ${COURSE.slice(0, i + 1).filter((c) => c.type === 'lesson').length}` }[item.type];
+    const sub = { song: data.level, drill: data.focus, lesson: data.summary }[item.type];
     const li = h(`
       <li class="node ${item.type} ${done ? 'done' : ''} ${i === nextIdx ? 'next' : ''}">
         <a href="${itemHref(item)}">
-          <span class="node-icon" aria-hidden="true">${item.type === 'song' ? '★' : done ? '✓' : '♪'}</span>
+          <span class="node-icon" aria-hidden="true">${icon}</span>
           <span class="node-text">
-            <span class="node-kind">${item.type === 'song' ? 'Nota Noktaları' : `Ders ${COURSE.slice(0, i + 1).filter((c) => c.type === 'lesson').length}`}</span>
+            <span class="node-kind">${kind}</span>
             <b>${data.title}</b>
-            <small>${item.type === 'song' ? `${data.level}${stars ? ' · ' + '★'.repeat(stars) : ''}` : data.summary}</small>
+            <small>${sub}${stars ? ' · ' + '★'.repeat(stars) : ''}</small>
           </span>
         </a>
       </li>`);
@@ -142,6 +150,51 @@ function showSong(song) {
     </section>`);
   view.appendChild(page);
   active = new DotsGame(page.querySelector('.game-host'), song);
+}
+
+// --------------------------------------------------------------------- Antrenman
+function showDrill(drill) {
+  const idx = COURSE.findIndex((c) => c.type === 'drill' && c.id === drill.id);
+  const next = COURSE[idx + 1];
+  view.innerHTML = '';
+  const page = h(`
+    <section class="drill-page">
+      <div class="page-head"><a class="back" href="#/antrenman">← Antrenmanlar</a>
+        ${next ? `<a class="back next-link" href="${itemHref(next)}">Sıradaki: ${itemData(next).title} →</a>` : ''}</div>
+      <div class="game-host"></div>
+    </section>`);
+  view.appendChild(page);
+  active = new DrillGame(page.querySelector('.game-host'), drill);
+}
+
+/** Tüm antrenmanlar, ders yolundaki sırasıyla; her biri hangi dersten sonra açıldığını söyler */
+function showDrillList() {
+  view.innerHTML = '';
+  let lastLesson = null;
+  const rows = [];
+  for (const item of COURSE) {
+    if (item.type === 'lesson') lastLesson = lessonById(item.id);
+    if (item.type !== 'drill') continue;
+    const d = drillById(item.id);
+    const stars = starsOf(item);
+    const notes = [...new Set(d.notes.map((n) => n.note))].sort((a, b) => midiOf(a) - midiOf(b)).map(shortName).join(' · ');
+    rows.push(`
+      <a class="drill-card" href="${itemHref(item)}">
+        <span class="node-kind">${lastLesson ? `${lastLesson.title} dersinden sonra` : ''}</span>
+        <b>${d.title}</b>
+        <span>${d.focus}</span>
+        <small class="muted">Notalar: ${notes} · ${d.notes.length} nota · ${d.bpm} vuruş/dk</small>
+        <span class="stars small">${[1, 2, 3].map((k) => `<span class="${k <= stars ? 'on' : ''}">★</span>`).join('')}</span>
+      </a>`);
+  }
+  view.appendChild(
+    h(`
+    <section class="drill-list-page">
+      <div class="page-head"><h2>Antrenman</h2></div>
+      <p class="muted">Burada resim yok: hedef, doğru notayı doğru süre boyunca çalmak. Her antrenman yalnızca o noktaya kadar öğrendiğin notaları kullanır.</p>
+      <div class="drill-cards">${rows.join('')}</div>
+    </section>`),
+  );
 }
 
 // --------------------------------------------------------------------- Parmak tablosu

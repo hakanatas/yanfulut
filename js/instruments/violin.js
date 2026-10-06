@@ -1,6 +1,7 @@
 // Keman paketi: dersler, şarkılar, parmak yeri şeması ve seslendirme.
 import { LESSONS } from '../violin/lessons.js';
 import { SONGS } from '../violin/songs.js';
+import { DRILLS } from '../violin/drills.js';
 import { VIOLIN_NOTES, violinFingering, violinTip, fingerText, violinRegister } from '../violin/notes.js';
 import { fingerboard } from '../violin/art.js';
 import { longName, setRegisterNaming } from '../data/notes.js';
@@ -29,22 +30,30 @@ export default {
   other: { name: 'Yan Flüt', href: '../', live: 'https://hakanatas.github.io/yanfulut/' },
   lessons: LESSONS,
   songs: SONGS,
+  drills: DRILLS,
   course: [
     { type: 'lesson', id: 'tanisma' },
     { type: 'lesson', id: 'tutus' },
     { type: 'lesson', id: 'yay' },
     { type: 'lesson', id: 'bos-teller' },
+    { type: 'lesson', id: 'ritim' },
+    { type: 'drill', id: 'bos-sureler' },
     { type: 'song', id: 'bos-tel-treni' },
+    { type: 'drill', id: 'tel-gecisleri' },
     { type: 'lesson', id: 'la-teli' },
+    { type: 'drill', id: 'la-teli-dortlukler' },
     { type: 'song', id: 'salincak' },
     { type: 'song', id: 'merdiven' },
+    { type: 'drill', id: 'uzun-yaylar' },
     { type: 'song', id: 'corekler' },
     { type: 'song', id: 'tembel' },
     { type: 'song', id: 'kuzu' },
     { type: 'lesson', id: 're-teli' },
+    { type: 'drill', id: 're-majorm' },
+    { type: 'drill', id: 'sekizlikler' },
     { type: 'song', id: 'nese' },
-    { type: 'lesson', id: 'ritim' },
     { type: 'lesson', id: 'mi-teli' },
+    { type: 'drill', id: 'mi-teli' },
     { type: 'song', id: 'yildiz' },
   ],
   notes: VIOLIN_NOTES,

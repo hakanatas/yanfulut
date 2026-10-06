@@ -506,6 +506,79 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .pad-key small { font-size: 0.7rem; color: var(--muted); }
 .pad-key:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); background: var(--sun); }
 
+/* ------------------------------------------------------------- antrenman */
+.node.drill .node-icon { background: var(--teal); color: #fff; font-family: 'Noto Music', var(--font-ui); }
+.node.drill.done .node-icon { background: var(--teal); }
+.drill-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.drill-head h2 { margin-top: 4px; }
+.drill-head p { margin: 0; }
+.drill-options { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+.seg-group { display: inline-flex; border: 2.5px solid var(--ink); border-radius: 14px; overflow: hidden; background: var(--paper); }
+.chip-btn {
+  font: inherit; font-weight: 700; padding: 8px 14px; min-height: 42px; border: 0; background: none; color: var(--ink); cursor: pointer;
+}
+.chip-btn + .chip-btn { border-left: 2px solid var(--ink); }
+.chip-btn.active { background: var(--ink); color: var(--paper); }
+.drill-staff-wrap {
+  overflow-x: auto; background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 6px 4px; scrollbar-width: thin;
+}
+.drill-staff { display: block; max-width: none; }
+.drill-hl { fill: transparent; }
+.drill-note.current .drill-hl { fill: var(--sun-soft); }
+.dur-bar { fill: color-mix(in srgb, var(--ink) 14%, transparent); }
+.dur-fill { fill: var(--sky); }
+.dur-name { font-family: var(--font-hand); font-size: 13px; fill: var(--muted); }
+.beat-num { font-family: var(--font-ui); font-size: 13px; fill: var(--muted); }
+.beat-num.strong { font-weight: 700; fill: var(--ink); }
+.time-sig { font-family: var(--font-ui); font-weight: 700; fill: var(--ink); }
+.playhead { stroke: var(--coral); stroke-width: 3; stroke-linecap: round; }
+.drill-note.ok .head-g, .drill-note.ok .dur-fill { fill: var(--teal); }
+.drill-note.ok .ink { stroke: var(--teal); }
+.drill-note.ok .dur-bar { fill: color-mix(in srgb, var(--teal) 30%, transparent); }
+.drill-note.short .head-g, .drill-note.short .dur-fill { fill: var(--sun); }
+.drill-note.short .ink { stroke: #c98a00; }
+.drill-note.miss .head-g, .drill-note.miss .dur-fill { fill: var(--coral); }
+.drill-note.miss .ink { stroke: var(--coral); }
+.drill-main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; margin: 14px 0; }
+.drill-target, .drill-side {
+  position: relative; background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px; text-align: center; min-width: 0;
+}
+.drill-target .target-name { font-size: clamp(2rem, 6vw, 3rem); font-weight: 700; line-height: 1.05; }
+.value-line { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.3rem; font-weight: 700; margin: 6px 0; }
+.value-sym { width: 30px; height: 42px; }
+.beat-dots { display: flex; justify-content: center; gap: 10px; margin: 10px 0 6px; }
+.beat-dots span { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--ink); background: var(--paper); transition: background 0.08s; }
+.beat-dots span.half { height: 15px; border-radius: 30px 30px 0 0; margin-top: 15px; }
+.beat-dots span.on { background: var(--teal); }
+.countdown {
+  position: absolute; inset: 0; display: grid; place-items: center; font-size: 5rem; font-weight: 700;
+  background: color-mix(in srgb, var(--paper) 88%, transparent); border-radius: var(--radius); z-index: 1;
+}
+.drill-result {
+  text-align: center; background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px;
+}
+.result-stars { font-size: 2rem; color: var(--sun); -webkit-text-stroke: 1px var(--ink); }
+.result-grid { display: flex; justify-content: center; gap: 28px; margin: 8px 0; }
+.result-grid div { display: flex; flex-direction: column; }
+.result-grid .big { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chip-btn.standalone { border: 2.5px dashed var(--ink); border-radius: 14px; background: var(--paper); }
+.cp-toggle-row { margin-top: 2px; }
+/* Yalnızca porte: parmak resmi gizliyken porte büyür */
+.no-fingering .target-visual .mini-staff, .no-fingering .cp-visual .mini-staff { width: 220px; }
+.pad-key.down { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); background: var(--sun); }
+.pad-key { touch-action: none; user-select: none; -webkit-user-select: none; }
+.next-link { margin-left: auto; }
+.drill-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
+.drill-card {
+  display: flex; flex-direction: column; gap: 2px; text-decoration: none; background: var(--paper); border: 2.5px solid var(--ink);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px;
+}
+.drill-card b { font-size: 1.15rem; }
+.drill-card:hover { transform: translateY(-2px); }
+.stars.small { font-size: 1.1rem; }
+
 /* ------------------------------------------------------------- parmak tablosu */
 .note-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .note-btn {
@@ -535,6 +608,7 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
   .hero-mascot { width: 120px; margin: 0 auto; }
   .progress-bar { margin: 0 auto; }
   .dots-main { grid-template-columns: 1fr; }
+  .drill-main { grid-template-columns: 1fr; }
   .node, .node:nth-child(n) { padding-left: 0; }
   .node:nth-child(odd) { justify-content: flex-start; }
   .node:nth-child(even) { justify-content: flex-end; }
