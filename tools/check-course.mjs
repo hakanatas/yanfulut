@@ -1,5 +1,7 @@
 // Ders yolu denetimi: her alıştırma (şarkı, antrenman, derslerdeki "Şimdi sen çal")
-// yalnızca kendisinden önce öğretilmiş notaları kullanmalı; antrenman ölçüleri 4/4'e tam bölünmeli.
+// yalnızca kendisinden önce öğretilmiş notaları kullanmalı; antrenman ölçüleri 4/4'e tam bölünmeli;
+// her anlatım cümlesinin Google TTS sesi üretilmiş olmalı (yoksa: node tools/tts.mjs <enstrüman>).
+import { PHRASES, checkpointPrompt, ttsKey } from '../js/data/phrases.js';
 // Kullanım: node tools/check-course.mjs   (hata varsa çıkış kodu 1)
 const problems = [];
 for (const id of ['flute', 'violin']) {
@@ -29,6 +31,15 @@ for (const id of ['flute', 'violin']) {
       if (beats % 4) problems.push(`${where}: toplam ${beats} vuruş, 4/4 ölçülere tam bölünmüyor`);
     }
   }
+  // Her anlatım cümlesinin sesi var mı?
+  inst.activate();
+  const texts = new Set(Object.values(PHRASES));
+  for (const l of inst.lessons) for (const sc of l.scenes || []) {
+    if (sc.say) texts.add(sc.say);
+    if (sc.check) texts.add(checkpointPrompt(sc.check));
+  }
+  const { manifest } = inst.tts;
+  for (const t of texts) if (t && !manifest.files[ttsKey(t, manifest.voice)]) problems.push(`${inst.name}: Google sesi üretilmemiş cümle: "${t.slice(0, 60)}…" (node tools/tts.mjs ${id})`);
   // Ders yolunda olmayan şarkı/antrenman kalmasın
   for (const [type, list] of [['song', inst.songs], ['drill', inst.drills]]) {
     for (const x of list) if (!inst.course.some((c) => c.type === type && c.id === x.id)) problems.push(`${inst.name}: ders yolunda olmayan ${type}: ${x.id}`);
@@ -38,4 +49,4 @@ if (problems.length) {
   console.error('Ders yolu denetimi BAŞARISIZ:\n- ' + problems.join('\n- '));
   process.exit(1);
 }
-console.log('Ders yolu denetimi geçti: tüm alıştırmalar yalnızca önceden öğretilen notaları kullanıyor.');
+console.log('Ders yolu denetimi geçti: tüm alıştırmalar yalnızca önceden öğretilen notaları kullanıyor ve her anlatım cümlesinin Google sesi var.');
