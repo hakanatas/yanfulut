@@ -138,6 +138,13 @@ h1, h2, h3 { line-height: 1.15; margin: 0 0 0.3em; }
 .nav a:hover { background: var(--paper-2); }
 .nav a.active { background: var(--ink); color: var(--paper); }
 
+.embed-note {
+  margin: 12px auto 0; max-width: 1008px; width: calc(100% - 32px);
+  padding: 10px 14px; border: 2px dashed var(--coral); border-radius: 14px;
+  background: var(--paper); font-weight: 600;
+}
+.embed-note a { color: var(--coral); }
+.level span { background: var(--teal); }
 main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
 
 .footer {

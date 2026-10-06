@@ -260,32 +260,84 @@ function appSoundActive(now) {
   return false;
 }
 
+/** Mikrofon açılamadığında kullanıcıya gösterilecek açıklama */
+export function micErrorMessage(err) {
+  const embedded = window.top !== window.self;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return embedded || !window.isSecureContext
+      ? 'Bu görünümde mikrofon kullanılamıyor. Uygulamayı tarayıcıda hakanatas.github.io/yanfulut adresinden aç.'
+      : 'Bu tarayıcı mikrofonu desteklemiyor. Güncel Chrome, Safari ya da Firefox dene.';
+  }
+  switch (err?.name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return embedded
+        ? 'Bu görünüm mikrofona izin vermiyor. Uygulamayı tarayıcıda hakanatas.github.io/yanfulut adresinden aç.'
+        : 'Mikrofon izni verilmedi. Adres çubuğundaki kilit/mikrofon simgesine dokunup izin ver, sonra sayfayı yenile.';
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return 'Mikrofon bulunamadı. Bir mikrofon bağlı olduğundan emin ol.';
+    case 'NotReadableError':
+    case 'AbortError':
+      return 'Mikrofon başka bir uygulama tarafından kullanılıyor olabilir. Diğer uygulamaları kapatıp tekrar dene.';
+    default:
+      return 'Mikrofona erişilemedi. Tarayıcı izinlerini kontrol et.';
+  }
+}
+
 /**
  * Mikrofonu dinler ve her karede algılanan notayı bildirir.
  * onFrame({note, midi, midiFloat, cents, freq, rms}) — ses yoksa note null olur;
  * uygulama kendisi ses çalarken muted: true ile gelir.
+ * onStatus('silent' | 'ok') — mikrofondan hiç veri gelmiyorsa 'silent'.
  */
 export class PitchListener {
-  constructor(onFrame) {
+  constructor(onFrame, { onStatus } = {}) {
     this.onFrame = onFrame;
+    this.onStatus = onStatus;
     this.running = false;
   }
 
   async start() {
     if (this.running) return;
+    if (!navigator.mediaDevices?.getUserMedia) throw new DOMException('getUserMedia yok', 'NotSupportedError');
     const ac = audioContext();
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
     });
+    // iPhone/Safari mikrofon izninden sonra ses motorunu askıya alabiliyor
+    if (ac.state !== 'running') await ac.resume().catch(() => {});
     this.source = ac.createMediaStreamSource(this.stream);
     this.analyser = ac.createAnalyser();
     this.analyser.fftSize = 2048;
+    // Safari, çıkışa bağlı olmayan düğümlere veri göndermez: sessiz bir kazançla bağla
+    this.sink = ac.createGain();
+    this.sink.gain.value = 0;
     this.source.connect(this.analyser);
+    this.analyser.connect(this.sink).connect(ac.destination);
     this.buf = new Float32Array(this.analyser.fftSize);
     this.running = true;
+    let frames = 0;
+    let heardAnything = false;
+    let reportedSilent = false;
     const tick = () => {
       if (!this.running) return;
       this.analyser.getFloatTimeDomainData(this.buf);
+      if (!heardAnything) {
+        for (let i = 0; i < this.buf.length; i += 16) {
+          if (this.buf[i] !== 0) {
+            heardAnything = true;
+            if (reportedSilent) this.onStatus?.('ok');
+            break;
+          }
+        }
+        if (!heardAnything && ++frames === 90) {
+          // ~1,5 sn boyunca tam sıfır: ses motoru durmuş ya da mikrofon veri vermiyor
+          reportedSilent = true;
+          ac.resume().catch(() => {});
+          this.onStatus?.('silent');
+        }
+      }
       if (appSoundActive(performance.now())) {
         this.onFrame({ note: null, rms: 0, muted: true });
       } else {
@@ -303,8 +355,12 @@ export class PitchListener {
     cancelAnimationFrame(this.raf);
     this.stream?.getTracks().forEach((t) => t.stop());
     this.source?.disconnect();
+    this.analyser?.disconnect();
+    this.sink?.disconnect();
   }
 }
+
+export const SILENT_MIC_MESSAGE = 'Mikrofondan ses gelmiyor. Ekrana bir kez dokun; düzelmezse sayfayı yenileyip mikrofon iznini tekrar ver.';
 
 /**
  * Hedef notanın belirli bir süre boyunca tutulmasını bekleyen yardımcı.

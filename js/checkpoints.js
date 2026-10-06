@@ -1,7 +1,7 @@
 // Videoyu durduran etkileşimli duraklar: soru, nota çalma, ses tutma, nefes egzersizi.
 import { flute, staff } from './art.js';
 import { longName, midiOf, titleName } from './data/notes.js';
-import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget } from './audio.js';
+import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { say, stopSpeaking } from './voice.js';
 import { progress } from './progress.js';
 import { PHRASES, checkpointPrompt } from './data/phrases.js';
@@ -121,19 +121,23 @@ function micPanel(card, onCleanup, { onFrame, target }) {
   const meter = panel.querySelector('.meter span');
   const heard = panel.querySelector('.heard');
   const hold = panel.querySelector('.hold span');
-  const listener = new PitchListener((frame) => {
-    meter.style.width = `${Math.min(100, frame.rms * 600)}%`;
-    heard.textContent = heardText(frame, target);
-    onFrame(frame);
-  });
+  let silent = false;
+  const listener = new PitchListener(
+    (frame) => {
+      meter.style.width = `${Math.min(100, frame.rms * 600)}%`;
+      heard.textContent = silent ? SILENT_MIC_MESSAGE : heardText(frame, target);
+      onFrame(frame);
+    },
+    { onStatus: (st) => (silent = st === 'silent') },
+  );
   onCleanup(() => listener.stop());
   const start = async () => {
     try {
       heard.textContent = 'Mikrofon açılıyor…';
       await listener.start();
       return true;
-    } catch {
-      heard.textContent = 'Mikrofona erişilemedi. Tarayıcı izinlerini kontrol et ya da mikrofonsuz devam et.';
+    } catch (err) {
+      heard.textContent = `${micErrorMessage(err)} İstersen mikrofonsuz devam edebilirsin.`;
       return false;
     }
   };
