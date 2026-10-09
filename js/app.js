@@ -5,6 +5,7 @@ import { instrument, setInstrument } from './instrument.js';
 import { LessonPlayer } from './player.js';
 import { DotsGame } from './dots.js';
 import { DrillGame } from './drill.js';
+import { SheetGame } from './sheet.js';
 import { progress } from './progress.js';
 import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, staffSvg, h } from './checkpoints.js';
@@ -17,6 +18,8 @@ let COURSE = [];
 const lessonById = (id) => instrument().lessons.find((l) => l.id === id);
 const songById = (id) => instrument().songs.find((s) => s.id === id);
 const drillById = (id) => instrument().drills.find((d) => d.id === id);
+const worksheetList = () => (instrument().worksheets || []).flatMap((u) => u.exercises.map((e) => ({ ...e, unit: u })));
+const worksheetById = (id) => worksheetList().find((e) => e.id === id);
 
 const starsOf = (item) => (item.type === 'drill' ? progress.songStars(`drill-${item.id}`) : item.type === 'song' ? progress.songStars(item.id) : 0);
 const isDone = (item) => (item.type === 'lesson' ? progress.isLessonDone(item.id) : starsOf(item) > 0);
@@ -34,6 +37,10 @@ function route() {
   if (page === 'sarki' && songById(id)) return showSong(songById(id));
   if (page === 'antrenman' && drillById(id)) return showDrill(drillById(id));
   if (page === 'antrenman') return showDrillList();
+  if (page === 'egzersiz' && instrument().worksheets) {
+    const ex = worksheetById(id);
+    return ex ? showWorksheet(ex) : showWorksheetList();
+  }
   if (page === 'parmak') return showChart(id);
   if (page === 'akort') return showTuner();
   showHome();
@@ -197,6 +204,64 @@ function showDrillList() {
   );
 }
 
+// --------------------------------------------------------------------- Egzersiz Yap (çalışma kağıdı)
+function showWorksheetList() {
+  view.innerHTML = '';
+  const units = instrument().worksheets;
+  const page = h(`
+    <section class="drill-list-page ws-list-page">
+      <div class="page-head"><h2>Egzersiz Yap</h2></div>
+      <p class="muted">Çalışma kağıdındaki egzersizler satır satır. Burada nokta birleştirme yok: büyük notayı ve flüt resmini izle,
+        her notayı <b>doğru süre</b> boyunca çal. Sonunda kaç notayı doğru, kaçını yanlış çaldığını görürsün.
+        Her ünite yeni notalarını önce tanıtır; egzersizler yalnızca o ana kadar tanıtılan notaları kullanır.</p>
+    </section>`);
+  for (const u of units) {
+    const sec = h(`
+      <div class="ws-unit card">
+        <div class="ws-unit-head"><h3>${u.title}</h3><span class="muted">${u.subtitle}</span></div>
+        ${u.newNotes.length ? `<div class="ws-new-notes">${u.newNotes.map((n) => `
+          <div class="ws-new-note">
+            <div class="ws-new-top"><b>${titleName(n)}</b>${staffSvg(n)}<button class="btn ghost small" data-play="${n}">🔊</button></div>
+            ${fingeringSvg(n)}
+          </div>`).join('')}</div>` : ''}
+        <ul class="ws-concepts">${u.concepts.map((c) => `<li><span class="ws-sym">${c.sym}</span><span><b>${c.title}:</b> ${c.text}</span></li>`).join('')}</ul>
+        <div class="drill-cards">${u.exercises.map((e) => {
+          const stars = progress.songStars(`ws-${e.id}`);
+          const notes = [...new Set(e.rows.join(' ').split(/\s+/).map((t) => t.split(':')[0].replace(/[!~]/g, '')).filter((t) => /^[A-G]/.test(t)))]
+            .sort((a, b) => midiOf(a) - midiOf(b)).map(shortName).join(' · ');
+          return `<a class="drill-card" href="#/egzersiz/${e.id}">
+            <span class="node-kind">${e.time}/4 · ${e.rows.length} satır</span>
+            <b>${e.title}</b>
+            <span>${e.focus}</span>
+            <small class="muted">Notalar: ${notes} · ${e.bpm} vuruş/dk</small>
+            <span class="stars small">${[1, 2, 3].map((k) => `<span class="${k <= stars ? 'on' : ''}">★</span>`).join('')}</span>
+          </a>`;
+        }).join('')}</div>
+      </div>`);
+    sec.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-play]');
+      if (b) playNote(b.dataset.play, 1.2);
+    });
+    page.appendChild(sec);
+  }
+  page.appendChild(h(`<p class="muted small-print">Kaynak: ${instrument().worksheetSource}.</p>`));
+  view.appendChild(page);
+}
+
+function showWorksheet(ex) {
+  const all = worksheetList();
+  const next = all[all.findIndex((e) => e.id === ex.id) + 1];
+  view.innerHTML = '';
+  const page = h(`
+    <section class="drill-page">
+      <div class="page-head"><a class="back" href="#/egzersiz">← Egzersizler · ${ex.unit.title}</a>
+        ${next ? `<a class="back next-link" href="#/egzersiz/${next.id}">Sıradaki: ${next.unit.id !== ex.unit.id ? `${next.unit.title} · ` : ''}${next.title} →</a>` : ''}</div>
+      <div class="game-host"></div>
+    </section>`);
+  view.appendChild(page);
+  active = new SheetGame(page.querySelector('.game-host'), ex);
+}
+
 // --------------------------------------------------------------------- Parmak tablosu
 function showChart(selected) {
   const ALL_NOTES = instrument().notes;
@@ -292,6 +357,10 @@ export async function boot(id) {
     if (embedded) other.target = '_blank';
     other.textContent = `${inst.other.name} →`;
   }
+
+  // Egzersiz Yap bölümü yalnızca çalışma kağıdı olan enstrümanda görünür
+  const wsLink = document.querySelector('.nav-worksheet');
+  if (wsLink) wsLink.hidden = !inst.worksheets;
 
   // Sıfırlama iki tıklamayla onaylanır (bazı gömülü görünümlerde confirm() çalışmaz)
   const resetBtn = document.getElementById('reset-progress');

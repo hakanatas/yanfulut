@@ -579,6 +579,96 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .drill-card:hover { transform: translateY(-2px); }
 .stars.small { font-size: 1.1rem; }
 
+/* ------------------------------------------------------------- egzersiz yap (çalışma kağıdı) */
+.ws-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin: 14px 0; }
+.ws-target .target-name { font-size: clamp(2.4rem, 7vw, 3.6rem); }
+.ws-where { font-weight: 700; font-size: 0.95rem; }
+/* Hedef kartının yüksekliği nota değişince oynamasın */
+.ws-target .value-line { min-height: 2.6em; }
+.ws-target .cp-feedback { min-height: 2.8em; margin: 6px 0; }
+.ws-target .mic-status { min-height: 2.6em; }
+.ws-big { display: grid; place-items: center; }
+.ws-big-staff { width: 100%; max-width: 360px; height: auto; }
+.ws-flute {
+  grid-column: 1 / -1; background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 8px 12px; transition: opacity 0.2s;
+}
+.ws-flute:empty { display: none; }
+.ws-flute .mini-flute { width: 100%; max-width: none; display: block; }
+.ws-flute.dim .mini-flute { opacity: 0.55; }
+.ws-flute-cap { font-weight: 700; text-align: center; }
+.beat-dots span.extra { border-style: dashed; }
+.beat-dots span.rest { border-radius: 8px; }
+.ws-rows { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.ws-row {
+  background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 8px 10px 4px; transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.ws.running .ws-row:not(.active) { opacity: 0.6; }
+.ws-row.active { border-color: var(--coral); box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 25%, transparent), var(--shadow); }
+.ws-row-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ws-row-head .ws-row-score { font-weight: 700; }
+.ws-row-head .link:first-of-type { margin-left: auto; }
+.ws-row-scroll { overflow-x: auto; scrollbar-width: thin; }
+.ws-row-svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.ws-row-svg .dur-name { font-size: 15px; font-weight: 700; }
+.ws-row-svg .beat-num { font-size: 14px; }
+.cur-mark { fill: var(--coral); opacity: 0; }
+.ws-item.current .cur-mark { opacity: 1; animation: bob 0.6s ease-in-out infinite alternate; }
+.ws-item.current .drill-hl { fill: var(--sun-soft); stroke: var(--sun); stroke-width: 2; }
+.ws-item.current .head-g { fill: var(--coral); }
+.ws-item.current .ink { stroke: var(--coral); }
+.ws-item.current .fill-ink, .ws-item.current .ink-fill { fill: var(--coral); }
+.ws-item .tie { stroke-width: 2; }
+.rest-glyph { font-family: 'Noto Music', serif; }
+.dur-bar.rest-bar { fill: color-mix(in srgb, var(--ink) 6%, transparent); stroke: color-mix(in srgb, var(--ink) 25%, transparent); stroke-dasharray: 3 3; }
+.drill-note.wrong .head-g, .drill-note.wrong .dur-fill { fill: var(--coral); }
+.drill-note.wrong .ink { stroke: var(--coral); }
+.drill-note.miss .drill-hl { fill: color-mix(in srgb, var(--coral) 10%, transparent); }
+@keyframes bob { from { transform: translateY(-3px); } to { transform: translateY(2px); } }
+.ws-result h3 { margin: 0 0 4px; }
+.ws-score { display: flex; flex-direction: column; align-items: center; }
+.ws-score .big { font-size: 3rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.ws-bar { display: flex; height: 18px; border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; margin: 12px auto; max-width: 520px; }
+.ws-bar .seg.ok { background: var(--teal); }
+.ws-bar .seg.short { background: var(--sun); }
+.ws-bar .seg.wrong { background: var(--coral); }
+.ws-bar .seg.miss { background: color-mix(in srgb, var(--coral) 40%, var(--paper)); }
+.ws-counts { flex-wrap: wrap; gap: 20px; }
+.ws-counts .ok .big { color: var(--teal); }
+.ws-counts .short .big { color: #c98a00; }
+.ws-counts .wrong .big, .ws-counts .miss .big { color: var(--coral); }
+.ws-result .end-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ws-unit { margin-top: 18px; }
+.ws-unit-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ws-unit-head h3 { margin: 0; }
+.ws-new-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 12px; margin: 12px 0; }
+.ws-new-note { border: 2px dashed var(--ink); border-radius: 14px; padding: 8px 10px; }
+.ws-new-top { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.ws-new-top b { font-size: 1.5rem; }
+.ws-new-note .mini-flute { width: 100%; max-width: none; display: block; }
+.ws-concepts { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8px; }
+.ws-concepts li { display: flex; gap: 12px; align-items: center; }
+.ws-sym {
+  flex: none; min-width: 52px; height: 44px; display: grid; place-items: center; padding: 0 6px; border: 2px solid var(--ink); border-radius: 12px;
+  font-family: 'Noto Music', var(--font-ui); font-size: 1.4rem; font-weight: 700; background: var(--paper-2);
+}
+/* Tuşla çalarken tuşlar ekranın altında sabit kalır (satırlar kayarken de erişilir) */
+.ws .touch-pad { position: sticky; bottom: 0; z-index: 5; background: var(--page); padding: 8px 0; margin-top: 0; }
+.btn.small { padding: 4px 10px; min-height: 36px; }
+.small-print { font-size: 0.85rem; margin-top: 16px; }
+@media (max-width: 720px) {
+  .ws-stage { gap: 8px; }
+  .ws-stage .drill-target, .ws-stage .drill-side { padding: 10px 8px; }
+  .ws-target .target-name { font-size: clamp(1.7rem, 8vw, 2.4rem); }
+  .ws-target .value-line { font-size: 1rem; }
+  .ws-target .beat-dots span { width: 22px; height: 22px; }
+  .ws-target .mic-status { font-size: 0.8rem; }
+  /* Dar ekranda flütün yalnızca parmak bölümü gösterilir (baş kısmı kırpılır), resim büyür */
+  .ws-flute { overflow: hidden; padding: 6px 0; }
+  .ws-flute .mini-flute { width: 150%; margin-left: -46%; }
+}
+
 /* ------------------------------------------------------------- parmak tablosu */
 .note-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .note-btn {
@@ -604,6 +694,10 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 
 /* ------------------------------------------------------------- dar ekranlar */
 @media (max-width: 720px) {
+  /* Menü tek satırda yana kayar; yapışkan üst çubuk ekranı kaplamasın */
+  .nav { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; padding-bottom: 2px; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { flex: none; white-space: nowrap; }
   .hero { grid-template-columns: 1fr; text-align: center; }
   .hero-mascot { width: 120px; margin: 0 auto; }
   .progress-bar { margin: 0 auto; }

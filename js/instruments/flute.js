@@ -2,6 +2,7 @@
 import { LESSONS } from '../data/lessons.js';
 import { SONGS } from '../data/songs.js';
 import { DRILLS } from '../data/drills.js';
+import { UNITS, SOURCE } from '../data/worksheet.js';
 import { ALL_NOTES, fingeringOf, tipOf, KEYS, KEY_NAMES, longName, setRegisterNaming } from '../data/notes.js';
 import { flute } from '../art.js';
 import { setPitchRange, setTimbre } from '../audio.js';
@@ -23,6 +24,8 @@ export default {
   lessons: LESSONS,
   songs: SONGS,
   drills: DRILLS,
+  worksheets: UNITS,
+  worksheetSource: SOURCE,
   course: [
     { type: 'lesson', id: 'tanisma' },
     { type: 'lesson', id: 'ilk-ses' },
