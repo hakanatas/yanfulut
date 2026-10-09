@@ -40,6 +40,43 @@ for (const id of ['flute', 'violin']) {
   }
   const { manifest } = inst.tts;
   for (const t of texts) if (t && !manifest.files[ttsKey(t, manifest.voice)]) problems.push(`${inst.name}: Google sesi üretilmemiş cümle: "${t.slice(0, 60)}…" (node tools/tts.mjs ${id})`);
+  // Egzersiz Yap (çalışma kağıdı): yalnızca tanıtılmış notalar, ölçüler ölçü sayısına tam uymalı, bağlar aynı notaya
+  if (inst.worksheets) {
+    const { parseRow } = await import('../js/data/worksheet.js');
+    const introduced = new Set();
+    for (const u of inst.worksheets) {
+      u.newNotes.forEach((n) => {
+        introduced.add(n);
+        if (!inst.notes.includes(n)) problems.push(`${inst.name} › ${u.title}: parmak pozisyonu olmayan nota ${n}`);
+      });
+      for (const ex of u.exercises) {
+        const where = `${inst.name} › ${u.title} › ${ex.title}`;
+        const items = ex.rows.flatMap(parseRow);
+        const bad = [...new Set(items.filter((i) => !i.rest && !introduced.has(i.note)).map((i) => i.note))];
+        if (bad.length) problems.push(`${where}: tanıtılmamış nota(lar) ${bad.join(', ')}`);
+        items.forEach((it, k) => {
+          if (it.tie && (items[k + 1]?.note !== it.note || it.bar === 'final')) problems.push(`${where}: bağ aynı notaya gitmiyor (${k + 1}. öğe)`);
+        });
+        // Ölçüler: satır sonları ölçü çizgisi sayılır; anakruz (pickup) ilk ölçüyü, son ölçü onu tamamlar
+        const bars = [];
+        let acc = 0;
+        for (const row of ex.rows) {
+          const r = parseRow(row);
+          r.forEach((it, k) => {
+            acc += it.beats;
+            if (it.bar || k === r.length - 1) {
+              bars.push(acc);
+              acc = 0;
+            }
+          });
+        }
+        bars.forEach((b, k) => {
+          const want = ex.pickup && k === 0 ? ex.pickup : ex.pickup && k === bars.length - 1 ? ex.time - ex.pickup : ex.time;
+          if (b !== want) problems.push(`${where}: ${k + 1}. ölçü ${b} vuruş, ${want} olmalı`);
+        });
+      }
+    }
+  }
   // Ders yolunda olmayan şarkı/antrenman kalmasın
   for (const [type, list] of [['song', inst.songs], ['drill', inst.drills]]) {
     for (const x of list) if (!inst.course.some((c) => c.type === type && c.id === x.id)) problems.push(`${inst.name}: ders yolunda olmayan ${type}: ${x.id}`);

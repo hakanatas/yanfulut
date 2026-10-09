@@ -45,6 +45,14 @@ Mikrofon, hedef notaya ±70 sent yakınlığı doğru sayar; yeni başlayanları
 
 Üç oyun modu var: **Flütle çal** (mikrofon), **Dokunarak çal** (ekrandaki nota düğmeleri, flütü yanında olmayanlar için) ve **Dinle ve izle** (ezgiyi çalıp resmi kendisi çizer). Hata sayısına göre 1 ile 3 arasında yıldız kazanılır.
 
+### Egzersiz Yap (yalnızca flüt)
+
+Çalışma kağıdının (Ünite 1–5) egzersizleri. Nokta birleştirme yok: büyük nota adı, büyük porte ve büyük flüt parmak resmi
+gösterilir; satırlar ayrı kartlarda durur, çalınan nota üzerinde vurgu ve okuma çizgisi ilerler. Sus işaretleri sayılır
+(puanlanmaz), korona notası yazılanın iki katı tutulur, bağlı notalar tek nota sayılır. Bütün egzersiz ya da tek bir satır
+çalınabilir; sonda doğru / süresi kısa / yanlış / kaçırılan nota sayıları ve yüzde gösterilir. Her ünite yeni notalarını
+önce tanıtır; `tools/check-course.mjs` egzersizlerin yalnızca tanıtılmış notaları kullandığını ve ölçü toplamlarını denetler.
+
 ### Antrenman
 Resim yok; hedef doğru notayı **doğru süre** boyunca çalmak. Parça gerçek nota yazısıyla gösterilir: 4/4 ölçüler, her vuruşun altında sayı (1 2 3 4), her notanın altında uzunluğunu gösteren süre çubuğu ve aynı vuruştaki sekizlikler kirişle bağlı.
 
@@ -94,6 +102,8 @@ js/art.js             Çizimler: flüt, porte, maskot, şişe, dudaklar…
 js/dots.js            Nota Noktaları oyunu
 js/drill.js           Antrenman: nota + süre çalışması (kendi hızımda / tempolu)
 js/data/drills.js     Flüt antrenmanları (keman: js/violin/drills.js)
+js/sheet.js           Egzersiz Yap: çalışma kağıdı egzersizleri satır satır (sus, korona, bağ, 2/4-3/4-4/4)
+js/data/worksheet.js  Flüt çalışma kağıdı: Ünite 1–5 egzersizleri ve yeni notalar
 js/data/shapes.js     Kısa şarkıların resimleri
 tools/check-course.mjs  Ders yolu denetimi
 js/audio.js           Flüt benzeri sentezleyici ve mikrofonla perde algılama
