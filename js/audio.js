@@ -474,8 +474,13 @@ export class PitchListener {
         this.onFrame({ note: null, rms: 0, muted: true });
       } else {
         const { freq, rms } = detectPitch(this.buf, ac.sampleRate);
-        if (freq > 0) this.onFrame({ ...freqToNote(freq), freq, rms });
-        else this.onFrame({ note: null, rms });
+        // Son ~10 ms'nin ses şiddeti: dil vurmadaki kısa kesintiyi yakalamak için
+        let fast = 0;
+        const n = this.buf.length;
+        for (let i = n - 512; i < n; i++) fast += this.buf[i] * this.buf[i];
+        const rmsFast = Math.sqrt(fast / 512);
+        if (freq > 0) this.onFrame({ ...freqToNote(freq), freq, rms, rmsFast });
+        else this.onFrame({ note: null, rms, rmsFast });
       }
       this.raf = requestAnimationFrame(tick);
     };

@@ -57,7 +57,9 @@ gösterilir; satırlar ayrı kartlarda durur, çalınan nota üzerinde vurgu ve 
 Resim yok; hedef doğru notayı **doğru süre** boyunca çalmak. Parça gerçek nota yazısıyla gösterilir: 4/4 ölçüler, her vuruşun altında sayı (1 2 3 4), her notanın altında uzunluğunu gösteren süre çubuğu ve aynı vuruştaki sekizlikler kirişle bağlı.
 
 - **Kendi hızımda:** Her nota süresi kadar (vuruş × tempo) tutulunca geçilir; vuruş noktaları tutarken dolar. Erken bırakılırsa "Kısa kaldı: 2 vuruş tutmalısın" denir ve nota tekrar istenir.
-- **Tempolu:** Dört vuruşluk metronom sayımından sonra okuma çizgisi ilerler; her nota hem nota hem süre için puanlanır (yeşil: tam, sarı: süre kısa, kırmızı: kaçtı).
+- **Tempolu:** Dört vuruşluk metronom sayımından sonra okuma çizgisi **ilk notanı duyana kadar bekler**, sonra ilerler; her nota hem nota hem süre için puanlanır (yeşil: tam, sarı: süre eksik, kırmızı: yanlış ya da kaçtı).
+- **Süre affedilmez** (`js/scoring.js`): nota ancak yazılı süresinin neredeyse tamamı çalınırsa "tam süre" sayılır; yalnızca dil vurma boşluğu kadar (en çok 0,17 sn ya da sürenin %12'si) eksik kalabilir. Aynı nota art arda geliyorsa her biri yeniden başlatılmalı (dil vurma); tek uzun ses olarak çalınırsa sayılmaz. Kendi hızımda modunda nota yazılı süresinin %97'si kadar tutulmalı.
+- Antrenman ve Egzersiz sayfalarında **◀ Önceki / Sonraki ▶** düğmeleri hem üstte hem sonuç kartında bulunur.
 - Mikrofonla ya da ekrandaki tuşa basılı tutarak çalınır; sonunda doğru nota ve tam süre sayısı gösterilir.
 
 ### Yalnızca porte
@@ -102,6 +104,7 @@ js/art.js             Çizimler: flüt, porte, maskot, şişe, dudaklar…
 js/dots.js            Nota Noktaları oyunu
 js/drill.js           Antrenman: nota + süre çalışması (kendi hızımda / tempolu)
 js/data/drills.js     Flüt antrenmanları (keman: js/violin/drills.js)
+js/scoring.js         Ortak puanlama: tam süre toleransı, dil vurma (nota başlangıcı) algılama
 js/sheet.js           Egzersiz Yap: çalışma kağıdı egzersizleri satır satır (sus, korona, bağ, 2/4-3/4-4/4)
 js/data/worksheet.js  Flüt çalışma kağıdı: Ünite 1–5 egzersizleri ve yeni notalar
 js/data/shapes.js     Kısa şarkıların resimleri
