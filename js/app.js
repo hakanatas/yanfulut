@@ -161,17 +161,28 @@ function showSong(song) {
 
 // --------------------------------------------------------------------- Antrenman
 function showDrill(drill) {
-  const idx = COURSE.findIndex((c) => c.type === 'drill' && c.id === drill.id);
-  const next = COURSE[idx + 1];
+  // Önceki/sonraki antrenman: ders yolundaki sırayla
+  const drills = COURSE.filter((c) => c.type === 'drill').map((c) => drillById(c.id));
+  const k = drills.findIndex((d) => d.id === drill.id);
+  const link = (d) => d && { href: `#/antrenman/${d.id}`, title: d.title };
+  const nav = { prev: link(drills[k - 1]), next: link(drills[k + 1]) };
   view.innerHTML = '';
   const page = h(`
     <section class="drill-page">
-      <div class="page-head"><a class="back" href="#/antrenman">← Antrenmanlar</a>
-        ${next ? `<a class="back next-link" href="${itemHref(next)}">Sıradaki: ${itemData(next).title} →</a>` : ''}</div>
+      <div class="page-head"><a class="back" href="#/antrenman">← Antrenmanlar</a>${pagerHtml(nav, 'antrenman', k, drills.length)}</div>
       <div class="game-host"></div>
     </section>`);
   view.appendChild(page);
-  active = new DrillGame(page.querySelector('.game-host'), drill);
+  active = new DrillGame(page.querySelector('.game-host'), drill, { nav });
+}
+
+/** Sayfa başındaki önceki / sonraki düğmeleri */
+function pagerHtml(nav, what, k, n) {
+  return `<nav class="pager" aria-label="Önceki ve sonraki ${what}">
+    ${nav.prev ? `<a class="btn small" href="${nav.prev.href}" title="${nav.prev.title}">◀ Önceki</a>` : '<span class="btn small disabled" aria-disabled="true">◀ Önceki</span>'}
+    <span class="pager-count muted">${k + 1} / ${n}</span>
+    ${nav.next ? `<a class="btn small primary" href="${nav.next.href}" title="${nav.next.title}">Sonraki ▶</a>` : '<span class="btn small disabled" aria-disabled="true">Sonraki ▶</span>'}
+  </nav>`;
 }
 
 /** Tüm antrenmanlar, ders yolundaki sırasıyla; her biri hangi dersten sonra açıldığını söyler */
@@ -250,16 +261,17 @@ function showWorksheetList() {
 
 function showWorksheet(ex) {
   const all = worksheetList();
-  const next = all[all.findIndex((e) => e.id === ex.id) + 1];
+  const k = all.findIndex((e) => e.id === ex.id);
+  const link = (e) => e && { href: `#/egzersiz/${e.id}`, title: `${e.unit.id !== ex.unit.id ? `${e.unit.title} · ` : ''}${e.title}` };
+  const nav = { prev: link(all[k - 1]), next: link(all[k + 1]) };
   view.innerHTML = '';
   const page = h(`
     <section class="drill-page">
-      <div class="page-head"><a class="back" href="#/egzersiz">← Egzersizler · ${ex.unit.title}</a>
-        ${next ? `<a class="back next-link" href="#/egzersiz/${next.id}">Sıradaki: ${next.unit.id !== ex.unit.id ? `${next.unit.title} · ` : ''}${next.title} →</a>` : ''}</div>
+      <div class="page-head"><a class="back" href="#/egzersiz">← Egzersizler · ${ex.unit.title}</a>${pagerHtml(nav, 'egzersiz', k, all.length)}</div>
       <div class="game-host"></div>
     </section>`);
   view.appendChild(page);
-  active = new SheetGame(page.querySelector('.game-host'), ex);
+  active = new SheetGame(page.querySelector('.game-host'), ex, { nav });
 }
 
 // --------------------------------------------------------------------- Parmak tablosu

@@ -7,8 +7,10 @@ import { longName, midiOf, shortName, titleName, noteFromMidi, staffStep, parseN
 import { prepareExercise } from './data/worksheet.js';
 import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, fingeringToggle, h } from './checkpoints.js';
+import { navButtons } from './drill.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
+import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf } from './scoring.js';
 
 const VALUE = {
   4: ['birlik', 'whole', '4 vuruş'],
@@ -177,8 +179,9 @@ function bigNoteSvg(item) {
 
 // ------------------------------------------------------------------ oyun
 export class SheetGame {
-  constructor(root, exercise, { onFinish } = {}) {
+  constructor(root, exercise, { onFinish, nav = {} } = {}) {
     this.root = root;
+    this.nav = nav;
     this.ex = prepareExercise(exercise);
     this.beatMs = 60000 / exercise.bpm;
     this.onFinish = onFinish;
@@ -607,7 +610,7 @@ export class SheetGame {
       return;
     }
     const target = midiOf(ev.note);
-    const needMs = Math.max(250, ev.ms * 0.9 - (this.input === 'mic' ? 90 : 0));
+    const needMs = holdNeedMs(ev.ms, this.input);
     const s = this.sounding(now);
     const rms = this.input === 'mic' ? this.frame?.rms || 0 : this.pressed != null ? 1 : 0;
     const dip = this.holdStart && rms < this.peakRms * (this.reached ? 0.6 : 0.35);
@@ -664,7 +667,7 @@ export class SheetGame {
     countEl.hidden = false;
     const time = this.ex.time;
     const clicks = time === 2 ? 4 : time;
-    this.$('.cp-feedback').textContent = `Dinle: ${clicks} vuruş sayıyorum, sonra başla.`;
+    this.$('.cp-feedback').textContent = `Dinle: ${clicks} vuruş sayıyorum. Okuma çizgisi ilk notanı duyunca başlar.`;
     let k = 0;
     const tick = () => {
       if (!this.running) return;
@@ -692,27 +695,62 @@ export class SheetGame {
     const total = acc;
     const correct = {};
     const wrong = {};
-    const latency = 90; // mikrofon gecikmesi
-    const t0 = performance.now();
-    let last = t0;
+    const onsets = []; // nota başlangıçları (okuma zamanı, ms)
+    const detector = new OnsetDetector();
+    const latency = latencyOf(this.input);
+    const firstNote = this.scored.find((i) => i >= a && i < b) ?? a;
+    let t0 = null; // ilk ses duyulunca kurulur: okuma çizgisi öğrenciyi bekler
+    let soundSince = 0;
+    let last = performance.now();
     let cur = -1;
     const fb = this.$('.cp-feedback');
+    fb.textContent = `Hazır olduğunda ilk notayı (${longName(this.events[firstNote].note)}) çal: okuma çizgisi seni bekliyor.`;
+    this.showTarget(firstNote);
+    this.highlight(firstNote);
+    this.movePlayhead(firstNote, 0);
     const evaluate = (i) => {
       const ev = this.events[i];
       if (ev.rest) return;
-      const cov = (correct[i] || 0) / ev.ms;
-      let kind = cov >= 0.6 ? 'ok' : cov >= 0.25 ? 'short' : 'miss';
-      if (kind === 'miss' && (wrong[i] || 0) > ev.ms * 0.4) kind = 'wrong';
+      // Aynı nota art arda geliyorsa ikincisi yeniden başlatılmalı (dil vurma)
+      const prev = this.events[i - 1];
+      const repeat = i > a && prev && !prev.rest && prev.note === ev.note;
+      // Pencere geniş: önceki notanın ortasından bu notanın %60'ına kadar (insan temposu biraz kayar)
+      const rearticulated = !repeat || onsets.some((t) => t >= starts[i] - prev.ms / 2 && t <= starts[i] + ev.ms * 0.6);
+      const kind = judgeNote({ ms: ev.ms, correct: correct[i], wrong: wrong[i], rearticulated });
       this.mark(i, kind);
+      const want = beatsText(ev.beats * (ev.fermata ? FERMATA : 1));
+      const got = beatsText(beatsPlayed(correct[i] || 0, this.beatMs));
       // Geri bildirim az önce biten nota içindir
-      fb.textContent = `Önceki nota (${shortName(ev.note)}): ` + { ok: '✓ doğru nota, doğru süre', short: `nota doğru ama süre kısa, ${beatsText(ev.beats)} tut.`, wrong: `yanlış nota, hedef ${longName(ev.note)} idi.`, miss: 'kaçırdın.' }[kind];
+      fb.textContent =
+        `Önceki nota (${shortName(ev.note)}): ` +
+        {
+          ok: '✓ doğru nota, tam süre',
+          short: rearticulated ? `süre eksik! ${want} çalmalıydın, yaklaşık ${got} çaldın.` : 'aynı notayı yeniden başlatmadın: dil vur (tu-tu).',
+          wrong: `yanlış nota, hedef ${longName(ev.note)} idi.`,
+          miss: 'kaçırdın.',
+        }[kind];
     };
     const loop = () => {
       if (!this.running) return;
       const now = performance.now();
+      const s = this.sounding(now);
+      if (t0 == null) {
+        // İlk ses: kısa bir an sürmeli (gürültü/tık sayılmasın)
+        if (s == null) soundSince = 0;
+        else if (!soundSince) soundSince = now;
+        if (!soundSince || now - soundSince < 60) {
+          this.raf = requestAnimationFrame(loop);
+          return;
+        }
+        t0 = soundSince - latency - starts[firstNote];
+        last = soundSince;
+        fb.textContent = '';
+      }
       const dt = now - last;
       last = now;
       const heard = now - t0 - latency;
+      const rms = this.input === 'mic' ? (this.frame?.rmsFast ?? this.frame?.rms) || 0 : s != null ? 1 : 0;
+      if (detector.update(s != null, rms)) onsets.push(heard - (this.input === 'mic' ? 30 : 0));
       let i = cur < 0 ? a - 1 : cur;
       while (i + 1 < b && heard >= starts[i + 1]) i++;
       if (i >= a && i !== cur) {
@@ -725,7 +763,6 @@ export class SheetGame {
       }
       if (cur >= 0) {
         const ev = this.events[cur];
-        const s = this.sounding(now);
         if (!ev.rest) {
           if (this.isTarget(s, midiOf(ev.note))) correct[cur] = (correct[cur] || 0) + dt;
           else if (s != null) wrong[cur] = (wrong[cur] || 0) + dt;
@@ -783,17 +820,15 @@ export class SheetGame {
       <div class="ws-bar" aria-hidden="true">${seg('ok', ok)}${seg('short', short)}${seg('wrong', wrong)}${seg('miss', miss)}</div>
       <div class="result-grid ws-counts">
         <div class="ok"><span class="big">${ok}</span><small>✓ doğru</small></div>
-        <div class="short"><span class="big">${short}</span><small>◐ nota doğru, süre kısa</small></div>
+        <div class="short"><span class="big">${short}</span><small>◐ süre eksik</small></div>
         <div class="wrong"><span class="big">${wrong}</span><small>✗ yanlış nota</small></div>
         ${this.mode === 'tempo' ? `<div class="miss"><span class="big">${miss}</span><small>○ kaçırılan</small></div>` : ''}
       </div>
       <p>${n} notanın ${ok + short} tanesinde nota doğru (%${pitchPct}), ${ok} tanesinde süre de tam. ${
-        ok === n ? 'Kusursuz!' : 'Renkli notalar satırlarda duruyor: sarı süre kısa, kırmızı yanlış ya da kaçırılan nota.'
+        ok === n ? 'Kusursuz!' : 'Renkli notalar satırlarda duruyor: sarı süre eksik, kırmızı yanlış ya da kaçırılan nota.'
       }</p>
-      <div class="end-actions">
-        <button class="btn primary" data-act="again">↺ Tekrar çal</button>
-        ${full ? '' : '<button class="btn" data-act="all">▶ Baştan sona çal</button>'}
-      </div>`;
+      ${navButtons(this.nav, 'egzersiz')}
+      ${full ? '' : '<p><button class="btn" data-act="all">▶ Bütün egzersizi baştan sona çal</button></p>'}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start(this.onlyRow));
     res.querySelector('[data-act=all]')?.addEventListener('click', () => this.start());
     res.scrollIntoView({ behavior: smooth(), block: 'center' });
