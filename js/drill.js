@@ -9,17 +9,8 @@ import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorM
 import { fingeringSvg, fingeringToggle, staffSvg, h } from './checkpoints.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
-import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf } from './scoring.js';
+import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
 
-const VALUE = {
-  4: ['birlik', 'whole', '4 vuruş'],
-  3: ['noktalı ikilik', 'half', '3 vuruş'],
-  2: ['ikilik', 'half', '2 vuruş'],
-  1.5: ['noktalı dörtlük', 'quarter', '1,5 vuruş'],
-  1: ['dörtlük', 'quarter', '1 vuruş'],
-  0.5: ['sekizlik', 'eighth', 'yarım vuruş'],
-};
-const valueOf = (beats) => VALUE[beats] || VALUE[1];
 
 // Porte ölçüleri
 const SP = 13;
@@ -150,7 +141,6 @@ export class DrillGame {
 
   render() {
     const distinct = [...new Set(this.notes.map((n) => n.note))].sort((a, b) => midiOf(a) - midiOf(b));
-    const name = instrument().name;
     this.root.innerHTML = '';
     this.el = h(`
       <div class="drill">
@@ -164,7 +154,7 @@ export class DrillGame {
         </div>
         <div class="drill-options">
           <div class="seg-group" role="group" aria-label="Nasıl çalacaksın">
-            <button class="chip-btn" data-input="mic">🎤 ${name}la çal</button>
+            <button class="chip-btn" data-input="mic">🎤 ${instrument().playWith} çal</button>
             <button class="chip-btn" data-input="touch">👆 Tuşa basılı tut</button>
           </div>
           <div class="seg-group" role="group" aria-label="Mod">

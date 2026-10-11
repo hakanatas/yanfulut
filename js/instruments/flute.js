@@ -11,6 +11,7 @@ import { TTS } from '../tts/manifest.js';
 export default {
   id: 'flute',
   name: 'Yan Flüt',
+  playWith: 'Flütle', // "… çal" düğmeleri için
   appTitle: 'Nokta Nokta Flüt',
   liveLabel: 'hakanatas.github.io/yanfulut',
   storageKey: 'yanflut.progress.v1',

@@ -11,6 +11,7 @@ import { TTS } from '../violin/tts/manifest.js';
 export default {
   id: 'violin',
   name: 'Keman',
+  playWith: 'Kemanla', // "… çal" düğmeleri için
   appTitle: 'Nokta Nokta Keman',
   liveLabel: 'hakanatas.github.io/yanfulut/keman',
   storageKey: 'keman.progress.v1',

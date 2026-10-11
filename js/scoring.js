@@ -1,6 +1,25 @@
-// Antrenman ve Egzersiz Yap için ortak puanlama kuralları.
+// Antrenman, Egzersiz Yap ve Nota Noktaları için ortak puanlama kuralları.
 // Süre affedilmez: nota ancak yazılı süresinin neredeyse tamamı boyunca çalınırsa "tam süre" sayılır;
 // yalnızca dil vurma boşluğu ve mikrofon gecikmesi kadar pay bırakılır.
+
+import { noteSymbol } from './art.js';
+
+/** Nota değerleri: [ad, çizim türü, süre yazısı, simge] */
+const VALUE = {
+  4: ['birlik', 'whole', '4 vuruş', '𝅝'],
+  3: ['noktalı ikilik', 'half', '3 vuruş', '𝅗𝅥.'],
+  2: ['ikilik', 'half', '2 vuruş', '𝅗𝅥'],
+  1.5: ['noktalı dörtlük', 'quarter', '1,5 vuruş', '♩.'],
+  1: ['dörtlük', 'quarter', '1 vuruş', '♩'],
+  0.5: ['sekizlik', 'eighth', 'yarım vuruş', '♪'],
+};
+export const valueOf = (beats) => VALUE[beats] || VALUE[1];
+
+/** Nota değerinin küçük çizimi (yazı tipine bağlı değil) */
+export function valueIcon(beats, cls = 'value-icon') {
+  const dotted = beats === 3 || beats === 1.5;
+  return `<svg class="${cls}" viewBox="0 0 28 44" aria-hidden="true">${noteSymbol(11, 34, 9, valueOf(beats)[1], false)}${dotted ? '<circle cx="22" cy="34" r="2" class="fill-ink"/>' : ''}</svg>`;
+}
 
 /** Mikrofonun sesi fark etme gecikmesi (ms); tuşta gecikme yok denecek kadar az */
 export const latencyOf = (input) => (input === 'mic' ? 90 : 10);

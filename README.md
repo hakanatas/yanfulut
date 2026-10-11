@@ -28,7 +28,10 @@ Her ders, tahtaya elle çiziliyormuş gibi beliren sahnelerden oluşan bir "vide
 Maskotumuz **Nota** (yüzü olan bir sekizlik nota) dersler boyunca eşlik eder.
 
 ### 2. Nota Noktaları (şarkı oyunu)
-Şarkının her notası bir resmin bir noktasıdır. Doğru notayı çaldıkça sıradaki noktaya çizgi çekilir; şarkı bitince gizli resim ortaya çıkar.
+Şarkının her notası bir resmin bir noktasıdır. Doğru notayı **süresi kadar** tuttukça sıradaki noktaya çizgi çekilir; şarkı bitince gizli resim ortaya çıkar.
+Ezgi şeridinde her notanın değeri çizili (dörtlük, ikilik, birlik…; kutu genişliği süreyle orantılı), hedef panelinde vuruş noktaları ve dolan çubuk var.
+Nota erken bırakılırsa "Kısa kaldı" denir ve tekrar istenir; art arda aynı nota her seferinde yeniden başlatılmalı. Sonuçta yanlış nota ve kısa kalan süre sayıları gösterilir.
+Dokunarak çalarken tuşa notanın süresi kadar basılı tutulur.
 
 | Şarkı | Notalar | Gizli resim |
 |---|---|---|

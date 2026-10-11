@@ -534,15 +534,23 @@ export class NoteMatcher {
     if (frame.muted) return;
     if (this.release) {
       const { midi, rms } = this.release;
-      if (matchesTarget(frame, midi, { octaveOk: this.octaveOk }) && frame.rms > rms * 0.5) return;
+      if (matchesTarget(frame, midi, { octaveOk: this.octaveOk }) && (frame.rmsFast ?? frame.rms) > rms * 0.35) return;
       this.release = null;
     }
     if (this.target == null) return;
     const opts = { octaveOk: this.octaveOk };
-    if (matchesTarget(frame, this.target, opts)) {
+    const level = frame.rmsFast ?? frame.rms ?? 0;
+    // Ses kesilirken analiz penceresinde kalan kuyruk hâlâ aynı nota görünür: sessizse sayma
+    // Yeni tutma yalnızca ses yükselirken başlar (son 10 ms, son 43 ms'nin yarısından güçlü olmalı)
+    const loud = this.since ? level > this.peak * 0.35 : level > (frame.rms || 0) * 0.5;
+    if (loud && matchesTarget(frame, this.target, opts)) {
       this.lastWrong = null;
       this.lastHit = now;
-      if (!this.since) this.since = now;
+      if (!this.since) {
+        this.since = now;
+        this.peak = level;
+      }
+      this.peak = Math.max((this.peak || 0) * 0.995, level);
       this.offsets.push(offsetFromTarget(frame, this.target, opts));
       const p = Math.min(1, (now - this.since) / this.holdMs);
       this.onProgress?.(p, frame);
@@ -551,13 +559,14 @@ export class NoteMatcher {
         const sorted = [...this.offsets].sort((a, b) => a - b);
         const cents = Math.round(sorted[sorted.length >> 1] * 100);
         this.target = null;
-        this.release = { midi: t, rms: frame.rms };
+        this.release = { midi: t, rms: this.peak || frame.rms };
         this.onMatch?.(t, { ...frame, octave: frame.midi !== t && Math.abs(frame.midiFloat - t) > 6, tuning: cents });
       }
       return;
     }
-    // Kısa kopmalar (nefes, titreşim) tutma süresini sıfırlamasın
-    if (this.since && now - this.lastHit < 150) return;
+    // Kısa kopmalar (algılama boşluğu, titreşim) tutma süresini sıfırlamasın;
+    // ama ses gerçekten kesildiyse (nefes, dil vurma) tutma biter
+    if (this.since && now - this.lastHit < 150 && level > this.peak * 0.35) return;
     this.since = 0;
     this.offsets = [];
     this.onProgress?.(0, frame);
