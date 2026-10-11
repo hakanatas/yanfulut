@@ -491,11 +491,21 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .mic-status { font-size: 0.95rem; color: var(--muted); min-height: 1.4em; }
 .melody-strip { display: flex; gap: 4px; overflow-x: auto; padding: 8px 2px; scrollbar-width: thin; }
 .chip {
-  flex: none; min-width: calc(34px * var(--w, 1)); text-align: center; padding: 3px 6px; border-radius: 10px;
+  position: relative; overflow: hidden; flex: none; min-width: calc(22px + 24px * var(--w, 1)); text-align: center; padding: 3px 6px; border-radius: 10px;
   border: 2px solid var(--ink); background: var(--paper); font-weight: 700; font-size: 0.95rem;
+  display: flex; flex-direction: column; align-items: center; line-height: 1.1;
 }
+.chip b, .chip small { position: relative; z-index: 1; }
+.chip-val { width: 14px; height: 22px; position: relative; z-index: 1; }
+.chip.current .chip-val .ink, .chip.done .chip-val .ink { stroke: #fff; }
+.chip.current .chip-val .head-g, .chip.done .chip-val .head-g, .chip.current .chip-val .fill-ink, .chip.done .chip-val .fill-ink { fill: #fff; }
+.chip-fill { position: absolute; left: 0; bottom: 0; top: 0; width: 0; background: color-mix(in srgb, var(--teal) 55%, transparent); }
 .chip.done { background: var(--teal); color: #fff; opacity: 0.55; }
 .chip.current { background: var(--coral); color: #fff; transform: scale(1.12); }
+.dots-side .value-line { font-size: 1.05rem; margin: 2px 0; }
+.value-glyph .value-icon { width: 22px; height: 34px; display: block; }
+.dots-side .beat-dots span { width: 24px; height: 24px; }
+.dots-side .beat-dots span.half { height: 12px; margin-top: 12px; }
 .dots-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .touch-pad { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .pad-key {

@@ -1,12 +1,16 @@
-// Nota Noktaları: şarkının her notası resmin bir noktası. Doğru notayı çaldıkça
+// Nota Noktaları: şarkının her notası resmin bir noktası. Doğru notayı süresi kadar tuttukça
 // sıradaki noktaya çizgi çekilir; şarkı bitince resim tamamlanır.
+// Süreler: ezgi şeridinde her notanın değeri (♩ 1 vuruş, 𝅗𝅥 2 vuruş…) yazar; nota ancak süresi
+// boyunca tutulunca kabul edilir, erken bırakılırsa "kısa kaldı" denir.
 import { distributeDots } from './data/songs.js';
 import { longName, midiOf, shortName, noteFromMidi, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playMelody, playChime, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, fingeringToggle, staffSvg, h, heardText } from './checkpoints.js';
 import { progress } from './progress.js';
+import { instrument } from './instrument.js';
 import { say } from './voice.js';
 import { PHRASES } from './data/phrases.js';
+import { holdNeedMs, valueIcon, valueOf } from './scoring.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const svgEl = (tag, attrs) => {
@@ -21,6 +25,7 @@ export class DotsGame {
     this.song = song;
     this.onExit = onExit;
     this.dots = distributeDots(song.shape.outline, song.notes.length);
+    this.beatMs = 60000 / song.bpm;
     this.mode = null;
     this.render();
     this.reset();
@@ -38,7 +43,7 @@ export class DotsGame {
         <div class="dots-head">
           <div>
             <h2>${this.song.title}</h2>
-            <p class="muted">Notaları çal, noktaları birleştir: gizli resim ne?</p>
+            <p class="muted">Notaları çal, noktaları birleştir: gizli resim ne? Her notayı <b>süresi kadar</b> tut: dörtlük 1 vuruş, ikilik 2 vuruş, birlik 4 vuruş · ${this.song.bpm} vuruş/dakika</p>
             ${this.song.hint ? `<p class="song-hint">💡 ${this.song.hint}</p>` : ''}
           </div>
           <div class="stars" aria-label="Yıldızlar"></div>
@@ -60,6 +65,8 @@ export class DotsGame {
             <div class="target">
               <div class="cp-tag">Sıradaki nota</div>
               <div class="target-name"></div>
+              <div class="value-line"><span class="value-glyph"></span><span class="value-text"></span></div>
+              <div class="beat-dots" aria-hidden="true"></div>
               <div class="target-visual"></div>
             </div>
             <div class="mic-status" aria-live="polite"></div>
@@ -70,7 +77,7 @@ export class DotsGame {
         </div>
         <div class="melody-strip" aria-label="Ezgi"></div>
         <div class="dots-controls">
-          <button class="btn primary" data-mode="mic">🎤 Flütle çal</button>
+          <button class="btn primary" data-mode="mic">🎤 ${instrument().playWith} çal</button>
           <button class="btn" data-mode="touch">👆 Dokunarak çal</button>
           <button class="btn" data-mode="demo">🔊 Dinle ve izle</button>
           <button class="btn ghost" data-act="reset">↺ Baştan</button>
@@ -108,7 +115,7 @@ export class DotsGame {
 
     // Ezgi şeridi
     $('.melody-strip').innerHTML = this.song.notes
-      .map((n, i) => `<span class="chip" data-i="${i}" style="--w:${Math.min(2, n.beats)}">${shortName(n.note)}</span>`)
+      .map((n, i) => `<span class="chip" data-i="${i}" style="--w:${n.beats}" title="${valueOf(n.beats)[0]}, ${valueOf(n.beats)[2]}"><b>${shortName(n.note)}</b>${valueIcon(n.beats, 'chip-val')}<i class="chip-fill"></i></span>`)
       .join('');
 
     this.el.querySelector('.dots-controls').appendChild(fingeringToggle(() => this.update(), 'btn ghost'));
@@ -118,12 +125,72 @@ export class DotsGame {
       if (btn.dataset.act === 'reset') return this.reset();
       this.setMode(btn.dataset.mode);
     });
-    $('.touch-pad').addEventListener('click', (e) => {
+    // Dokunarak çal: tuşa notanın süresi kadar basılı tut
+    const pad = $('.touch-pad');
+    pad.addEventListener('pointerdown', (e) => {
       const key = e.target.closest('.pad-key');
-      if (!key) return;
-      playNote(key.dataset.note, 0.5);
-      this.input(midiOf(key.dataset.note));
+      if (!key || this.index >= this.song.notes.length) return;
+      e.preventDefault();
+      key.setPointerCapture?.(e.pointerId);
+      this.releasePad(false);
+      key.classList.add('down');
+      this.padSound = playNote(key.dataset.note, 12);
+      const midi = midiOf(key.dataset.note);
+      if (midi !== this.targetMidi()) return this.input(midi);
+      const start = performance.now();
+      const need = this.needMs();
+      this.pressing = true;
+      const tick = () => {
+        if (!this.pressing) return;
+        const p = (performance.now() - start) / need;
+        this.setProgress(p);
+        if (p >= 1) {
+          this.pressing = false;
+          this.input(midi);
+          return;
+        }
+        this.padRaf = requestAnimationFrame(tick);
+      };
+      tick();
     });
+    for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) pad.addEventListener(t, () => this.releasePad(true));
+  }
+
+  /** Tuş bırakıldı: süre dolmadan bırakıldıysa "kısa kaldı" */
+  releasePad(report) {
+    if (this.pressing && report) this.tooShort();
+    this.pressing = false;
+    cancelAnimationFrame(this.padRaf);
+    this.padSound?.stop();
+    this.padSound = null;
+    this.el?.querySelectorAll('.pad-key.down').forEach((k) => k.classList.remove('down'));
+  }
+
+  /** Sıradaki notanın tutulması gereken süre (ms) */
+  needMs() {
+    const n = this.song.notes[this.index];
+    return n ? holdNeedMs(n.beats * this.beatMs, this.mode === 'mic' ? 'mic' : 'touch') : 0;
+  }
+
+  /** Tutma ilerlemesi: çubuk, vuruş noktaları ve şeritteki nota */
+  setProgress(p) {
+    const f = Math.max(0, Math.min(1, p));
+    this.lastProgress = f;
+    this.$('.hold span').style.width = `${f * 100}%`;
+    const dots = this.$('.beat-dots').querySelectorAll('span');
+    dots.forEach((d, k) => d.classList.toggle('on', f * dots.length > k + 0.02));
+    const chip = this.el.querySelector('.chip.current .chip-fill');
+    if (chip) chip.style.width = `${f * 100}%`;
+  }
+
+  /** Nota süresi dolmadan bırakıldı */
+  tooShort() {
+    const n = this.song.notes[this.index];
+    if (!n) return;
+    const played = Math.round(this.lastProgress * n.beats * 2) / 2;
+    this.shorts++;
+    this.$('.cp-feedback').textContent = `Kısa kaldı! ${titleName(n.note)} ${valueOf(n.beats)[2]} tutulmalı${played ? ` (sen yaklaşık ${String(played).replace('.', ',')} vuruş tuttun)` : ''}. Tekrar dene.`;
+    this.setProgress(0);
   }
 
   reset() {
@@ -134,6 +201,8 @@ export class DotsGame {
   clearPicture() {
     this.index = 0;
     this.mistakes = 0;
+    this.shorts = 0;
+    this.lastProgress = 0;
     this.linesG.replaceChildren();
     this.detailsG.replaceChildren();
     this.sceneG.replaceChildren();
@@ -152,6 +221,7 @@ export class DotsGame {
   }
 
   stopAll() {
+    this.releasePad?.(false);
     this.listener?.stop();
     this.listener = null;
     this.demo?.stop();
@@ -168,14 +238,18 @@ export class DotsGame {
     const status = this.$('.mic-status');
     this.$('.level').hidden = true;
     if (mode !== 'mic') {
-      status.textContent = mode === 'touch' ? 'Sıradaki notanın düğmesine dokun.' : mode === 'demo' ? 'Dinle ve resmin çizilişini izle…' : 'Başlamak için bir mod seç.';
+      status.textContent = mode === 'touch' ? 'Sıradaki notanın tuşuna, notanın süresi kadar basılı tut.' : mode === 'demo' ? 'Dinle ve resmin çizilişini izle…' : 'Başlamak için bir mod seç.';
     }
     if (mode === 'mic') {
       // Şarkıda bir oktav yukarı/aşağı çalınan nota da kabul edilir (yeni başlayanlar sık sık üst oktava kayar)
       this.matcher = new NoteMatcher({
-        holdMs: 220,
+        holdMs: this.needMs(),
         octaveOk: true,
-        onProgress: (p) => (this.$('.hold span').style.width = `${p * 100}%`),
+        onProgress: (p) => {
+          // Süre dolmadan ses kesildi: kısa kaldı
+          if (p === 0 && this.lastProgress > 0.15 && this.lastProgress < 1 && this.lastProgress * this.needMs() > 150) this.tooShort();
+          else this.setProgress(p);
+        },
         onMatch: (midi, info) => this.input(midi, info),
         onWrong: (frame) => this.input(frame.midi),
       });
@@ -211,6 +285,12 @@ export class DotsGame {
     }
   }
 
+  retarget() {
+    if (this.mode !== 'mic' || !this.matcher) return;
+    this.matcher.holdMs = this.needMs();
+    this.matcher.setTarget(this.targetMidi());
+  }
+
   targetMidi() {
     const n = this.song.notes[this.index];
     return n ? midiOf(n.note) : null;
@@ -223,7 +303,7 @@ export class DotsGame {
     if (midi === this.targetMidi()) {
       fb.textContent = info?.octave ? 'Bir oktav farklı çaldın ama nota doğru, kabul! 👍' : '';
       this.advance(this.index);
-      if (this.mode === 'mic' && this.matcher) this.matcher.setTarget(this.targetMidi());
+      this.retarget();
     } else {
       this.mistakes++;
       const target = this.song.notes[this.index].note;
@@ -232,7 +312,7 @@ export class DotsGame {
       cur.classList.remove('shake');
       void cur.getBBox();
       cur.classList.add('shake');
-      if (this.mode === 'mic' && this.matcher) this.matcher.setTarget(this.targetMidi());
+      this.retarget();
     }
   }
 
@@ -263,7 +343,10 @@ export class DotsGame {
     const n = this.song.notes[i];
     this.$('.target-name').textContent = n ? titleName(n.note) : '🎉';
     this.$('.target-visual').innerHTML = n ? staffSvg(n.note) + fingeringSvg(n.note) : '';
-    this.$('.hold span').style.width = '0%';
+    this.$('.value-glyph').innerHTML = n ? valueIcon(n.beats) : '';
+    this.$('.value-text').textContent = n ? `${valueOf(n.beats)[0]} · ${valueOf(n.beats)[2]}` : '';
+    this.$('.beat-dots').innerHTML = n ? Array.from({ length: Math.max(1, Math.ceil(n.beats)) }, () => `<span class="${n.beats < 1 ? 'half' : ''}"></span>`).join('') : '';
+    this.setProgress(0);
   }
 
   complete(demo) {
@@ -286,7 +369,8 @@ export class DotsGame {
     this.listener = null;
     let stars = 0;
     if (!demo) {
-      stars = this.mistakes <= 2 ? 3 : this.mistakes <= 6 ? 2 : 1;
+      const errors = this.mistakes + this.shorts;
+      stars = errors <= 2 ? 3 : errors <= 6 ? 2 : 1;
       progress.completeSong(this.song.id, stars);
       if (progress.settings.voice) say(PHRASES.songDone);
       this.renderStars(progress.songStars(this.song.id));
@@ -295,8 +379,8 @@ export class DotsGame {
     const done = this.$('.dots-done');
     done.hidden = false;
     done.innerHTML = demo
-      ? `<b>Bu bir ${this.song.shape.name.toLocaleLowerCase('tr')}!</b><span>Şimdi sıra sende: “Flütle çal” ya da “Dokunarak çal”.</span>`
-      : `<b>${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</b><span>Harika! Resmi tamamladın: ${this.song.shape.name}. Hata sayısı: ${this.mistakes}</span>
+      ? `<b>Bu bir ${this.song.shape.name.toLocaleLowerCase('tr')}!</b><span>Şimdi sıra sende: “${instrument().playWith} çal” ya da “Dokunarak çal”.</span>`
+      : `<b>${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</b><span>Harika! Resmi tamamladın: ${this.song.shape.name}. Yanlış nota: ${this.mistakes} · Kısa kalan süre: ${this.shorts}</span>
          <button class="btn primary" data-act="again">Tekrar çal</button>`;
     done.querySelector('[data-act=again]')?.addEventListener('click', () => this.reset());
   }

@@ -10,18 +10,9 @@ import { fingeringSvg, fingeringToggle, h } from './checkpoints.js';
 import { navButtons } from './drill.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
-import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf } from './scoring.js';
+import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
 
-const VALUE = {
-  4: ['birlik', 'whole', '4 vuruş'],
-  3: ['noktalı ikilik', 'half', '3 vuruş'],
-  2: ['ikilik', 'half', '2 vuruş'],
-  1.5: ['noktalı dörtlük', 'quarter', '1,5 vuruş'],
-  1: ['dörtlük', 'quarter', '1 vuruş'],
-  0.5: ['sekizlik', 'eighth', 'yarım vuruş'],
-};
 const REST_NAME = { 4: 'birlik sus', 3: 'noktalı ikilik sus', 2: 'ikilik sus', 1: 'dörtlük sus' };
-const valueOf = (beats) => VALUE[beats] || VALUE[1];
 const beatsText = (b) => `${String(b).replace('.', ',')} vuruş`;
 const FERMATA = 2; // korona: yazılan sürenin katı
 const smooth = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
@@ -221,7 +212,6 @@ export class SheetGame {
   render() {
     const ex = this.ex;
     const distinct = [...new Set(this.items.filter((i) => !i.rest).map((i) => i.note))].sort((a, b) => midiOf(a) - midiOf(b));
-    const name = instrument().name;
     this.root.innerHTML = '';
     this.el = h(`
       <div class="drill ws">
@@ -235,7 +225,7 @@ export class SheetGame {
         </div>
         <div class="drill-options">
           <div class="seg-group" role="group" aria-label="Nasıl çalacaksın">
-            <button class="chip-btn" data-input="mic">🎤 ${name}la çal</button>
+            <button class="chip-btn" data-input="mic">🎤 ${instrument().playWith} çal</button>
             <button class="chip-btn" data-input="touch">👆 Tuşa basılı tut</button>
           </div>
           <div class="seg-group" role="group" aria-label="Mod">
