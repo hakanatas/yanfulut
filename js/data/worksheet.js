@@ -6,6 +6,7 @@
 //   R:2    2 vuruşluk sus (ölçünün tamamı kadar sus, tam ölçü susu olarak çizilir)
 //   B4:2!  korona (𝄐): nota yazılandan uzun tutulur
 //   A4~    bağ: sonraki aynı notaya bağlanır, dil vurmadan tek nota gibi çalınır
+//   B4:.5  sekizlik, B4:1.5 noktalı dörtlük, R:.5 sekizlik sus
 // Her ünite yeni notalarını "newNotes" ile tanıtır; egzersizler yalnızca o üniteye kadar tanıtılan
 // notaları kullanır (tools/check-course.mjs denetler).
 
@@ -245,6 +246,38 @@ export const UNITS = [
         time: 4,
         bpm: 72,
         rows: ['D5:2! R:2 || D5:2 C5 R:1! | D5:2 Bb4 R:1! | D5:2 A4 R:1!', 'D5:3 R:1! | D5:2 Bb4 R:1! | D5:2 A4 R:1! | D5:2 G4 R:1! | D5:4'],
+      },
+    ],
+  },
+  {
+    id: 'parcalar',
+    title: 'Parçalar',
+    subtitle: 'Dört notayla şarkılar: La, Si, İnce Do, İnce Re',
+    newNotes: [],
+    concepts: [
+      { sym: '♪', title: 'Sekizlik nota', text: 'Yarım vuruş. İki sekizlik bir dörtlük eder; "tu-tu" diye hızlıca dil vur.' },
+      { sym: '♩.', title: 'Noktalı dörtlük', text: '1 + ½ = 1,5 vuruş. Sekizlikten sonra gelince uzun tutmayı unutma.' },
+      { sym: '𝄾', title: 'Sekizlik sus', text: 'Yarım vuruş sessizlik; nefes için kısa bir an.' },
+    ],
+    exercises: [
+      {
+        id: 'masal-anlat-baba',
+        title: 'Bana Bir Masal Anlat Baba',
+        focus: 'Kolay düzenleme · yalnızca La, Si, İnce Do, İnce Re',
+        credit:
+          'Söz: Yavuz Turgul – Cengiz Onural · Müzik: Cengiz Onural. Onur Volkangil\'in kolay düzenlemesinden (Ses Veriyorum) dört notaya uyarlandı: Mi–Fa♯–Sol–La yerine La–Si–Do–Re; Re♯, ince Do ve Si notaları sadeleştirildi.',
+        time: 4,
+        bpm: 76,
+        rows: [
+          // Giriş
+          'A4 R:1 C5 R:1 | B4 C5:.5 B4:1.5 R:1 | R:1 B4:.5 B4:.5 B4:.5 B4:1.5 | C5 D5:.5 C5 R:.5 R:1',
+          'R:1 A4:.5 A4:.5 A4:.5 A4:1.5 | B4 C5:.5 B4 A4:1.5 | C5:4 | R:4',
+          'A4 R:1 C5 R:1 | B4 C5:.5 B4:1.5 R:1 | R:1 B4:.5 B4:.5 B4:.5 B4:1.5 | C5 D5:.5 C5 R:.5 R:1',
+          'R:1 A4:.5 A4:.5 A4:.5 A4:1.5 | B4 C5:.5 B4 A4:1.5 | A4:4 ||',
+          // Ara ezgi
+          'A4 R:1 C5 R:1 | B4 C5:.5 B4:1.5 R:1 | R:1 B4:.5 B4:.5 B4:.5 B4:1.5 | C5 D5:.5 C5 R:.5 R:1',
+          'R:1 A4:.5 A4:.5 A4:.5 A4:1.5 | B4 C5:.5 D5 C5:1.5 | A4:4',
+        ],
       },
     ],
   },
