@@ -12,7 +12,7 @@ import { instrument } from './instrument.js';
 import { progress } from './progress.js';
 import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
 
-const REST_NAME = { 4: 'birlik sus', 3: 'noktalı ikilik sus', 2: 'ikilik sus', 1: 'dörtlük sus' };
+const REST_NAME = { 4: 'birlik sus', 3: 'noktalı ikilik sus', 2: 'ikilik sus', 1: 'dörtlük sus', 0.5: 'sekizlik sus' };
 const beatsText = (b) => `${String(b).replace('.', ',')} vuruş`;
 const FERMATA = 2; // korona: yazılan sürenin katı
 const smooth = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
@@ -63,6 +63,11 @@ function restGlyph(g, beats, cx, wholeBar) {
     const base = `<rect x="${cx - w / 2}" y="${g.top + g.sp * 2 - g.sp * 0.55}" width="${w}" height="${g.sp * 0.55}" class="fill-ink"/>`;
     return beats === 3 ? base + `<circle cx="${cx + w}" cy="${g.top + g.sp * 1.5}" r="${g.sp * 0.2}" class="fill-ink"/>` : base;
   }
+  if (beats <= 0.5) {
+    // Sekizlik sus: küçük top ve aşağı inen eğik sap
+    const y = g.top + g.sp * 1.6;
+    return `<circle cx="${cx - g.sp * 0.35}" cy="${y}" r="${g.sp * 0.3}" class="fill-ink"/><path d="M${cx - g.sp * 0.35} ${y + g.sp * 0.15} Q${cx + g.sp * 0.2} ${y + g.sp * 0.3} ${cx + g.sp * 0.5} ${y - g.sp * 0.25} L${cx - g.sp * 0.15} ${y + g.sp * 1.9}" class="ink" fill="none"/>`;
+  }
   return `<text x="${cx}" y="${g.top + g.sp * 3.1}" font-size="${g.sp * 3.6}" text-anchor="middle" class="rest-glyph ink-fill">𝄽</text>`;
 }
 
@@ -110,9 +115,10 @@ function rowSvg(items, { time, first, startPos, rowIndex, baseIndex }) {
     }
     // Vuruş numaraları
     let nums = '';
-    for (let b = 0; b < Math.ceil(it.beats); b++) {
-      const n = ((pos + b) % time) + 1;
-      nums += `<text x="${x + 16 + b * BW}" y="${numY}" text-anchor="middle" class="beat-num ${n === 1 ? 'strong' : ''}">${n}</text>`;
+    // Yalnızca vuruş başları numaralanır (sekizliklerde vuruş ortası boş kalır)
+    for (let t = Math.ceil(pos - 1e-9); t < pos + it.beats - 1e-9; t++) {
+      const n = (t % time) + 1;
+      nums += `<text x="${x + 16 + ((t - pos) / it.beats) * (w - 16)}" y="${numY}" text-anchor="middle" class="beat-num ${n === 1 ? 'strong' : ''}">${n}</text>`;
     }
     const idx = baseIndex + k;
     body += `<g class="drill-note ws-item ${it.rest ? 'rest' : ''}" data-i="${idx}">
@@ -220,6 +226,7 @@ export class SheetGame {
             <div class="cp-tag">Egzersiz Yap</div>
             <h2>${ex.title}</h2>
             <p class="muted">${ex.focus} · ${ex.time}/4 ölçü · ${ex.bpm} vuruş/dakika · ${this.scored.length} nota</p>
+            ${ex.credit ? `<p class="muted small-print ws-credit">${ex.credit}</p>` : ''}
           </div>
           <div class="stars" aria-label="Yıldızlar"></div>
         </div>
@@ -278,6 +285,14 @@ export class SheetGame {
         </div>`);
       rowsEl.appendChild(card);
       return card;
+    });
+    // Bütün satırlar aynı ölçekte: kısa satır ekranı doldurmak için büyümesin
+    const svgs = this.rowEls.map((c) => c.querySelector('svg'));
+    const widest = Math.max(...svgs.map((v) => Number(v.getAttribute('width'))));
+    svgs.forEach((v) => {
+      const ratio = Number(v.getAttribute('width')) / widest;
+      v.style.width = `${ratio * 100}%`;
+      v.style.minWidth = `${Math.round(640 * ratio)}px`;
     });
     this.itemEls = [...this.el.querySelectorAll('.ws-item')];
 

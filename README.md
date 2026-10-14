@@ -50,6 +50,9 @@ Mikrofon, hedef notaya ±70 sent yakınlığı doğru sayar; yeni başlayanları
 
 ### Egzersiz Yap (yalnızca flüt)
 
+**Parçalar** bölümünde "Bana Bir Masal Anlat Baba" (Söz: Yavuz Turgul – Cengiz Onural, Müzik: Cengiz Onural) dört notaya
+(La, Si, İnce Do, İnce Re) uyarlanmış kolay düzenlemesiyle bulunur: sekizlik, noktalı dörtlük ve sekizlik sus içerir.
+
 Çalışma kağıdının (Ünite 1–5) egzersizleri. Nokta birleştirme yok: büyük nota adı, büyük porte ve büyük flüt parmak resmi
 gösterilir; satırlar ayrı kartlarda durur, çalınan nota üzerinde vurgu ve okuma çizgisi ilerler. Sus işaretleri sayılır
 (puanlanmaz), korona notası yazılanın iki katı tutulur, bağlı notalar tek nota sayılır. Bütün egzersiz ya da tek bir satır
