@@ -9,7 +9,7 @@ import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorM
 import { fingeringSvg, fingeringToggle, staffSvg, h } from './checkpoints.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
-import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
+import { OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
 
 
 // Porte ölçüleri
@@ -524,6 +524,7 @@ export class DrillGame {
     const wrong = this.notes.map(() => 0);
     const onsets = [];
     const detector = new OnsetDetector();
+    const follower = new TempoFollower(starts, this.notes.map((n) => ({ rest: false, midi: midiOf(n.note) })));
     const playhead = this.$('.playhead');
     playhead.removeAttribute('hidden');
     playhead.setAttribute('x1', X0);
@@ -575,9 +576,10 @@ export class DrillGame {
       }
       const dt = now - last;
       last = now;
-      const heard = now - t0 - latency;
       const rms = this.input === 'mic' ? (this.frame?.rmsFast ?? this.frame?.rms) || 0 : s != null ? 1 : 0;
-      if (detector.update(s != null, rms)) onsets.push(heard - (this.input === 'mic' ? 30 : 0));
+      const onset = detector.update(s != null, rms);
+      const heard = follower.update(now - t0 - latency, cur, (m) => this.isTarget(s, m), onset);
+      if (onset) onsets.push(heard - (this.input === 'mic' ? 30 : 0));
       playhead.setAttribute('x1', X0 + (heard / this.beatMs) * BEAT_W);
       playhead.setAttribute('x2', X0 + (heard / this.beatMs) * BEAT_W);
       let i = cur;
