@@ -84,3 +84,48 @@ export class OnsetDetector {
     return false;
   }
 }
+
+/**
+ * Tempolu çalmada okuma çizgisi öğrenciyi izler: insan temposu hafifçe kayar, bu yüzden
+ * nota geçişlerinde saat öğrenciye uyar.
+ *  - Erken geçiş: sıradaki nota, sınırdan en çok `win` ms önce başladıysa çizgi o ana kaydırılır.
+ *  - Geç geçiş: sınıra gelindiğinde sıradaki nota henüz başlamadıysa çizgi en çok `win` ms bekler.
+ * Notanın süresi yine yazıldığı kadar ölçülür; kayma notalar arasında birikmez.
+ */
+export class TempoFollower {
+  /** starts: olay başlangıçları (ms); events: [{midi|null, rest}] */
+  constructor(starts, events, { win = 320 } = {}) {
+    Object.assign(this, { starts, events, win });
+    this.offset = 0;
+    this.waited = {};
+    this.lastOnset = -Infinity;
+  }
+
+  /**
+   * raw: düzeltmesiz okuma zamanı; cur: şu anki olay; isMidi(m): şu an m çalınıyor mu; onset: bu karede yeni başlangıç var mı.
+   * @returns düzeltilmiş okuma zamanı
+   */
+  update(raw, cur, isMidi, onset) {
+    let heard = raw - this.offset;
+    if (onset) this.lastOnset = heard;
+    const k = cur + 1;
+    const next = this.events[k];
+    const start = this.starts[k];
+    if (cur < 0 || !next || next.rest || start == null) return heard;
+    const prev = this.events[cur];
+    const same = prev && !prev.rest && prev.midi === next.midi;
+    // Sıradaki nota başladı mı? Aynı nota tekrarındaysa yeni bir dil vuruşu gerekir
+    const started = isMidi(next.midi) && (!same || this.lastOnset >= start - this.win);
+    if (heard < start && heard >= start - this.win && started) {
+      this.offset -= start - heard; // erken geçiş: çizgiyi ileri al
+      return start;
+    }
+    if (heard >= start - 1 && !started && (this.waited[k] || 0) < this.win) {
+      const hold = heard - (start - 1); // geç geçiş: sınırda bekle
+      this.offset += hold;
+      this.waited[k] = (this.waited[k] || 0) + hold;
+      return start - 1;
+    }
+    return heard;
+  }
+}

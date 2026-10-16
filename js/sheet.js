@@ -10,7 +10,7 @@ import { fingeringSvg, fingeringToggle, h } from './checkpoints.js';
 import { navButtons } from './drill.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
-import { OnsetDetector, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
+import { OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
 
 const REST_NAME = { 4: 'birlik sus', 3: 'noktalı ikilik sus', 2: 'ikilik sus', 1: 'dörtlük sus', 0.5: 'sekizlik sus' };
 const beatsText = (b) => `${String(b).replace('.', ',')} vuruş`;
@@ -702,6 +702,7 @@ export class SheetGame {
     const wrong = {};
     const onsets = []; // nota başlangıçları (okuma zamanı, ms)
     const detector = new OnsetDetector();
+    const follower = new TempoFollower(starts, this.events.map((e) => ({ rest: e.rest, midi: e.rest ? null : midiOf(e.note) })));
     const latency = latencyOf(this.input);
     const firstNote = this.scored.find((i) => i >= a && i < b) ?? a;
     let t0 = null; // ilk ses duyulunca kurulur: okuma çizgisi öğrenciyi bekler
@@ -753,9 +754,10 @@ export class SheetGame {
       }
       const dt = now - last;
       last = now;
-      const heard = now - t0 - latency;
       const rms = this.input === 'mic' ? (this.frame?.rmsFast ?? this.frame?.rms) || 0 : s != null ? 1 : 0;
-      if (detector.update(s != null, rms)) onsets.push(heard - (this.input === 'mic' ? 30 : 0));
+      const onset = detector.update(s != null, rms);
+      const heard = follower.update(now - t0 - latency, cur, (m) => this.isTarget(s, m), onset);
+      if (onset) onsets.push(heard - (this.input === 'mic' ? 30 : 0));
       let i = cur < 0 ? a - 1 : cur;
       while (i + 1 < b && heard >= starts[i + 1]) i++;
       if (i >= a && i !== cur) {
