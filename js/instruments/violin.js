@@ -12,6 +12,7 @@ export default {
   id: 'violin',
   name: 'Keman',
   restartNote: 'A4', // egzersiz bitince bu nota uzun çalınırsa baştan başlar
+  nextNote: 'D4', // alıştırma bitince bu nota uzun çalınırsa sonrakine geçer
   playWith: 'Kemanla', // "… çal" düğmeleri için
   appTitle: 'Nokta Nokta Keman',
   liveLabel: 'hakanatas.github.io/yanfulut/keman',

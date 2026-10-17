@@ -4,9 +4,9 @@
 //  - "Tempolu": metronom sayımından sonra okuma çizgisi ilerler; her nota hem nota hem süre için puanlanır.
 // Girdi: mikrofon ya da ekrandaki tuşa basılı tutma.
 import { noteSymbol } from './art.js';
-import { longName, midiOf, shortName, titleName, noteFromMidi, staffStep, parseNote } from './data/notes.js';
+import { longName, midiOf, shortName, titleName, staffStep, parseNote } from './data/notes.js';
 import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
-import { fingeringSvg, fingeringToggle, staffSvg, h } from './checkpoints.js';
+import { fingeringSvg, fingeringToggle, heardName, staffSvg, h, wrongNoteText } from './checkpoints.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
 import { CommandNote, OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
@@ -112,28 +112,62 @@ function drillStaff(notes) {
   return `<svg class="drill-staff" viewBox="0 0 ${width} ${BAR_Y + 46}" width="${width}" height="${BAR_Y + 46}" role="img" aria-label="Antrenman notaları">${out}</svg>`;
 }
 
+/** Komutla sonraki alıştırmaya geçerken yeni sayfa aynı ayarlarla kendiliğinden başlar */
+export const handoff = { next: null };
+
 /**
- * Elini sürmeden tekrar: mikrofon açık kalır, enstrümanın komut notası (flütte Si, kemanda La)
- * uzun çalınınca alıştırma baştan başlar.
+ * Elini sürmeden: mikrofon açık kalır; komut notaları uzun çalınınca
+ *  - tekrar notası (flütte Si, kemanda La) alıştırmayı baştan başlatır,
+ *  - sonraki notası (flütte La, kemanda Re) sonraki alıştırmaya geçer ve onu da başlatır.
  */
-export function restartByNote(game, box, restart) {
-  const note = instrument().restartNote;
-  if (!game.listener || !note) return;
-  box.insertAdjacentHTML(
-    'beforeend',
-    `<div class="cmd-hint">🎤 Elini sürmeden tekrar: <b>${longName(note)}</b> notasını uzun çal<span class="cmd-bar" aria-hidden="true"><i></i></span></div>`,
-  );
-  const bar = box.querySelector('.cmd-bar i');
-  const cmd = new CommandNote(midiOf(note));
+export function commandNotes(game, box, { restart, next }) {
+  const inst = instrument();
+  if (!game.listener) return;
+  const cmds = [
+    inst.restartNote && { note: inst.restartNote, label: 'tekrar', run: restart },
+    inst.nextNote && next && { note: inst.nextNote, label: 'sonraki alıştırma', run: next },
+  ].filter(Boolean);
+  if (!cmds.length) return;
+  const hint = document.createElement('div');
+  hint.className = 'cmd-hint';
+  hint.innerHTML =
+    '<span>🎤 Elini sürmeden, notayı uzun çal:</span>' +
+    cmds.map((c) => `<span class="cmd"><b>${longName(c.note)}</b> → ${c.label}<span class="cmd-bar" aria-hidden="true"><i></i></span></span>`).join('');
+  box.appendChild(hint);
+  const bars = [...hint.querySelectorAll('.cmd-bar i')];
+  const watchers = cmds.map((c) => new CommandNote(midiOf(c.note)));
   const tick = () => {
     if (!game.listener) return;
     const now = performance.now();
-    const p = cmd.feed(game.sounding(now), now);
-    bar.style.width = `${p * 100}%`;
-    if (p >= 1) return restart();
+    const frame = game.sounding(now);
+    for (let k = 0; k < cmds.length; k++) {
+      const p = watchers[k].feed(frame, now);
+      bars[k].style.width = `${p * 100}%`;
+      if (p >= 1) return cmds[k].run();
+    }
     game.cmdRaf = requestAnimationFrame(tick);
   };
   tick();
+}
+
+/** Sonraki alıştırmaya geç: aynı giriş ve modla, sayfa açılınca kendiliğinden başlar */
+export function goNext(game) {
+  if (!game.nav?.next) return null;
+  return () => {
+    handoff.next = { input: game.input, mode: game.mode };
+    location.hash = game.nav.next.href;
+  };
+}
+
+/** Komutla gelindiyse önceki alıştırmanın ayarlarıyla hemen başla */
+export function takeHandoff(game) {
+  const h = handoff.next;
+  handoff.next = null;
+  if (!h) return;
+  game.input = h.input;
+  game.mode = h.mode;
+  game.updateButtons();
+  game.start();
 }
 
 /** Sonuç kartının alt düğmeleri: tekrar, önceki ve sonraki */
@@ -157,6 +191,7 @@ export class DrillGame {
     this.mode = 'hold';
     this.render();
     this.reset();
+    takeHandoff(this);
   }
 
   destroy() {
@@ -374,7 +409,7 @@ export class DrillGame {
           this.frame = f;
           this.frameAt = performance.now();
           level.firstElementChild.style.width = `${Math.min(100, (f.rms || 0) * 600)}%`;
-          status.textContent = silent ? SILENT_MIC_MESSAGE : f.note ? `Duyulan: ${longName(f.note)}` : 'Dinliyorum…';
+          status.textContent = silent ? SILENT_MIC_MESSAGE : f.note ? `Duyulan: ${heardName(f)}` : 'Dinliyorum…';
         },
         { onStatus: (st) => (silent = st === 'silent') },
       );
@@ -510,7 +545,7 @@ export class DrillGame {
         this.wrongSince = now;
       } else if (this.wrongSince && now - this.wrongSince > 500) {
         this.wrongSince = 0;
-        fb.textContent = `Bu ${longName(noteFromMidi(m))}; hedef ${longName(n.note)}. Parmaklarını resimle karşılaştır.`;
+        fb.textContent = wrongNoteText(s, n.note);
         if (this.results[this.index] !== 'short') this.results[this.index] = 'wrong';
       }
     }
@@ -567,6 +602,7 @@ export class DrillGame {
     const total = acc;
     const correct = this.notes.map(() => 0);
     const wrong = this.notes.map(() => 0);
+    const wrongFrame = {}; // notanın penceresinde duyulan yanlış ses (geri bildirim için)
     const onsets = [];
     const detector = new OnsetDetector();
     const follower = new TempoFollower(starts, this.notes.map((n) => ({ rest: false, midi: midiOf(n.note) })));
@@ -601,7 +637,7 @@ export class DrillGame {
         {
           ok: '✓ doğru nota, tam süre',
           short: rearticulated ? `süre eksik! ${valueOf(n.beats)[2]} çalmalıydın, yaklaşık ${got} vuruş çaldın.` : 'aynı notayı yeniden başlatmadın: dil vur (tu-tu).',
-          wrong: `yanlış nota, hedef ${longName(n.note)} idi.`,
+          wrong: wrongFrame[i] ? wrongNoteText(wrongFrame[i], n.note) : `yanlış nota, hedef ${longName(n.note)} idi.`,
           miss: 'kaçırdın.',
         }[kind];
     };
@@ -642,7 +678,10 @@ export class DrillGame {
       }
       if (cur >= 0) {
         if (this.isTarget(s, midiOf(this.notes[cur].note))) correct[cur] += dt;
-        else if (s != null) wrong[cur] += dt;
+        else if (s != null) {
+          wrong[cur] += dt;
+          wrongFrame[cur] = s;
+        }
         const dur = this.notes[cur].beats * this.beatMs;
         this.setHold((heard - starts[cur]) / dur, this.notes[cur].beats);
       }
@@ -685,7 +724,7 @@ export class DrillGame {
       <p>${ratio === 1 ? 'Kusursuz! Hem notalar hem süreler doğru.' : 'Renkli notalar portede duruyor: sarı süre eksik, kırmızı yanlış ya da kaçırılan nota.'}</p>
       ${navButtons(this.nav, 'antrenman')}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start());
-    restartByNote(this, res, () => this.start());
+    commandNotes(this, res, { restart: () => this.start(), next: goNext(this) });
     res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 

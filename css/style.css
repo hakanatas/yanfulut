@@ -674,7 +674,8 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .pager .btn { text-decoration: none; }
 .pager .disabled { opacity: 0.4; pointer-events: none; }
 .pager-count { font-weight: 700; font-variant-numeric: tabular-nums; }
-.cmd-hint { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; font-weight: 600; }
+.cmd-hint { display: flex; align-items: center; justify-content: center; gap: 8px 18px; flex-wrap: wrap; margin-top: 12px; font-weight: 600; }
+.cmd-hint .cmd { display: inline-flex; align-items: center; gap: 8px; }
 .cmd-bar { display: inline-block; width: 120px; height: 10px; border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; }
 .cmd-bar i { display: block; height: 100%; width: 0; background: var(--teal); }
 .result-nav { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }

@@ -3,11 +3,11 @@
 // Modlar ve girdiler Antrenman ile aynı: "Kendi hızımda" / "Tempolu", mikrofon ya da basılı tutulan tuş.
 // Sus işaretleri sayılır ama puanlanmaz; korona (𝄐) notası yazılanın iki katı tutulur; bağlı notalar tek nota sayılır.
 import { noteSymbol } from './art.js';
-import { longName, midiOf, shortName, titleName, noteFromMidi, staffStep, parseNote } from './data/notes.js';
+import { longName, midiOf, shortName, titleName, staffStep, parseNote } from './data/notes.js';
 import { prepareExercise } from './data/worksheet.js';
 import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
-import { fingeringSvg, fingeringToggle, h } from './checkpoints.js';
-import { navButtons, restartByNote } from './drill.js';
+import { fingeringSvg, fingeringToggle, h, heardName, wrongNoteText } from './checkpoints.js';
+import { commandNotes, goNext, navButtons, takeHandoff } from './drill.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
 import { OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
@@ -187,6 +187,7 @@ export class SheetGame {
     this.build();
     this.render();
     this.reset();
+    takeHandoff(this);
   }
 
   destroy() {
@@ -530,7 +531,7 @@ export class SheetGame {
           this.frame = f;
           this.frameAt = performance.now();
           level.firstElementChild.style.width = `${Math.min(100, (f.rms || 0) * 600)}%`;
-          status.textContent = silent ? SILENT_MIC_MESSAGE : f.note ? `Duyulan: ${longName(f.note)}` : 'Dinliyorum…';
+          status.textContent = silent ? SILENT_MIC_MESSAGE : f.note ? `Duyulan: ${heardName(f)}` : 'Dinliyorum…';
         },
         { onStatus: (st) => (silent = st === 'silent') },
       );
@@ -677,7 +678,7 @@ export class SheetGame {
         this.wrongSince = now;
       } else if (this.wrongSince && now - this.wrongSince > 500) {
         this.wrongSince = 0;
-        fb.textContent = `Bu ${longName(noteFromMidi(m))}; hedef ${longName(ev.note)}. Parmaklarını resimle karşılaştır.`;
+        fb.textContent = wrongNoteText(s, ev.note);
         this.firstTry = 'wrong';
         this.partsEls(i).forEach((g) => g.classList.add('wrong'));
       }
@@ -718,6 +719,7 @@ export class SheetGame {
     const total = acc;
     const correct = {};
     const wrong = {};
+    const wrongFrame = {}; // notanın penceresinde duyulan yanlış ses (geri bildirim için)
     const onsets = []; // nota başlangıçları (okuma zamanı, ms)
     const detector = new OnsetDetector();
     const follower = new TempoFollower(starts, this.events.map((e) => ({ rest: e.rest, midi: e.rest ? null : midiOf(e.note) })));
@@ -751,7 +753,7 @@ export class SheetGame {
         {
           ok: '✓ doğru nota, tam süre',
           short: rearticulated ? `süre eksik! ${want} çalmalıydın, yaklaşık ${got} çaldın.` : 'aynı notayı yeniden başlatmadın: dil vur (tu-tu).',
-          wrong: `yanlış nota, hedef ${longName(ev.note)} idi.`,
+          wrong: wrongFrame[i] ? wrongNoteText(wrongFrame[i], ev.note) : `yanlış nota, hedef ${longName(ev.note)} idi.`,
           miss: 'kaçırdın.',
         }[kind];
     };
@@ -792,7 +794,10 @@ export class SheetGame {
         const ev = this.events[cur];
         if (!ev.rest) {
           if (this.isTarget(s, midiOf(ev.note))) correct[cur] = (correct[cur] || 0) + dt;
-          else if (s != null) wrong[cur] = (wrong[cur] || 0) + dt;
+          else if (s != null) {
+            wrong[cur] = (wrong[cur] || 0) + dt;
+            wrongFrame[cur] = s;
+          }
         }
         const f = (heard - starts[cur]) / ev.ms;
         this.setHold(f);
@@ -858,7 +863,7 @@ export class SheetGame {
       ${full ? '' : '<p><button class="btn" data-act="all">▶ Bütün egzersizi baştan sona çal</button></p>'}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start(this.onlyRow));
     res.querySelector('[data-act=all]')?.addEventListener('click', () => this.start());
-    restartByNote(this, res, () => this.start(this.onlyRow));
+    commandNotes(this, res, { restart: () => this.start(this.onlyRow), next: goNext(this) });
     res.scrollIntoView({ behavior: smooth(), block: 'center' });
     this.onFinish?.({ ok, short, wrong, miss, n, full });
   }

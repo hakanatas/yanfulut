@@ -3,9 +3,9 @@
 // Süreler: ezgi şeridinde her notanın değeri (♩ 1 vuruş, 𝅗𝅥 2 vuruş…) yazar; nota ancak süresi
 // boyunca tutulunca kabul edilir, erken bırakılırsa "kısa kaldı" denir.
 import { distributeDots } from './data/songs.js';
-import { longName, midiOf, shortName, noteFromMidi, titleName } from './data/notes.js';
+import { longName, midiOf, shortName, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playMelody, playChime, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
-import { fingeringSvg, fingeringToggle, staffSvg, h, heardText } from './checkpoints.js';
+import { fingeringSvg, fingeringToggle, staffSvg, h, heardText, wrongNoteText } from './checkpoints.js';
 import { progress } from './progress.js';
 import { instrument } from './instrument.js';
 import { say } from './voice.js';
@@ -251,7 +251,7 @@ export class DotsGame {
           else this.setProgress(p);
         },
         onMatch: (midi, info) => this.input(midi, info),
-        onWrong: (frame) => this.input(frame.midi),
+        onWrong: (frame) => this.input(frame.midi, frame),
       });
       this.matcher.setTarget(this.targetMidi());
       const level = this.$('.level');
@@ -307,7 +307,7 @@ export class DotsGame {
     } else {
       this.mistakes++;
       const target = this.song.notes[this.index].note;
-      fb.textContent = `Bu ${longName(noteFromMidi(midi))} oldu, sıradaki nota ${longName(target)}.`;
+      fb.textContent = wrongNoteText(info?.midiFloat != null ? info : midi, target);
       const cur = this.dotEls[this.index];
       cur.classList.remove('shake');
       void cur.getBBox();
