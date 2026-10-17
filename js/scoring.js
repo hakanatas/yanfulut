@@ -3,6 +3,7 @@
 // yalnızca dil vurma boşluğu ve mikrofon gecikmesi kadar pay bırakılır.
 
 import { noteSymbol } from './art.js';
+import { matchesTarget } from './audio.js';
 
 /** Nota değerleri: [ad, çizim türü, süre yazısı, simge] */
 const VALUE = {
@@ -127,5 +128,34 @@ export class TempoFollower {
       return start - 1;
     }
     return heard;
+  }
+}
+
+/**
+ * Komut notası: egzersiz bitince belli bir nota uzun çalınırsa yeniden başlatılır (klavye/fare gerekmez).
+ * Bitişte hâlâ çalınan son nota sayılmaz: önce bir kez susmak ya da başka nota çalmak gerekir.
+ */
+export class CommandNote {
+  constructor(midi, { holdMs = 1200 } = {}) {
+    Object.assign(this, { midi, holdMs });
+    this.armed = false;
+    this.since = 0;
+    this.lastOn = 0;
+  }
+
+  /** frame: duyulan nota karesi ya da null. @returns 0–1 ilerleme (1 = komut verildi) */
+  feed(frame, now = performance.now()) {
+    const on = !!frame?.note && matchesTarget(frame, this.midi);
+    if (on) {
+      this.lastOn = now;
+      if (!this.armed) return 0;
+      if (!this.since) this.since = now;
+      return Math.min(1, (now - this.since) / this.holdMs);
+    }
+    this.armed = true;
+    // Algılamadaki çok kısa kopmalar tutmayı bozmasın
+    if (this.since && now - this.lastOn < 150) return Math.min(1, (now - this.since) / this.holdMs);
+    this.since = 0;
+    return 0;
   }
 }

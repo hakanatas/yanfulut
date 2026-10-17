@@ -11,6 +11,7 @@ import { TTS } from '../tts/manifest.js';
 export default {
   id: 'flute',
   name: 'Yan Flüt',
+  restartNote: 'B4', // egzersiz bitince bu nota uzun çalınırsa baştan başlar
   playWith: 'Flütle', // "… çal" düğmeleri için
   appTitle: 'Nokta Nokta Flüt',
   liveLabel: 'hakanatas.github.io/yanfulut',

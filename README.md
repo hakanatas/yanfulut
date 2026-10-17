@@ -66,6 +66,7 @@ Resim yok; hedef doğru notayı **doğru süre** boyunca çalmak. Parça gerçek
 - **Tempolu:** Dört vuruşluk metronom sayımından sonra okuma çizgisi **ilk notanı duyana kadar bekler**, sonra ilerler; her nota hem nota hem süre için puanlanır (yeşil: tam, sarı: süre eksik, kırmızı: yanlış ya da kaçtı).
 - **Okuma çizgisi öğrenciyi izler** (`TempoFollower`): nota geçişinde sıradaki nota en çok 0,32 sn erken başlarsa çizgi ona uyar, geç kalırsa o kadar bekler; böylece insan temposundaki küçük kaymalar notadan notaya birikmez.
 - **Süre affedilmez** (`js/scoring.js`): nota ancak yazılı süresinin neredeyse tamamı çalınırsa "tam süre" sayılır; yalnızca dil vurma boşluğu kadar (en çok 0,17 sn ya da sürenin %12'si) eksik kalabilir. Aynı nota art arda geliyorsa her biri yeniden başlatılmalı (dil vurma); tek uzun ses olarak çalınırsa sayılmaz. Kendi hızımda modunda nota yazılı süresinin %97'si kadar tutulmalı.
+- **Elini sürmeden tekrar:** mikrofonla çalarken alıştırma bitince mikrofon açık kalır; flütte **Si**, kemanda **La** yaklaşık 1 sn uzun çalınırsa alıştırma baştan başlar (klavye/fare gerekmez). Bitişte hâlâ süren ses sayılmaz; önce bir an susmak gerekir.
 - Antrenman ve Egzersiz sayfalarında **◀ Önceki / Sonraki ▶** düğmeleri hem üstte hem sonuç kartında bulunur.
 - Mikrofonla ya da ekrandaki tuşa basılı tutarak çalınır; sonunda doğru nota ve tam süre sayısı gösterilir.
 

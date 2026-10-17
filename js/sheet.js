@@ -7,7 +7,7 @@ import { longName, midiOf, shortName, titleName, noteFromMidi, staffStep, parseN
 import { prepareExercise } from './data/worksheet.js';
 import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, fingeringToggle, h } from './checkpoints.js';
-import { navButtons } from './drill.js';
+import { navButtons, restartByNote } from './drill.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
 import { OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
@@ -360,8 +360,8 @@ export class SheetGame {
     return [idx[0], idx.at(-1) + 1];
   }
 
-  reset(row = null) {
-    this.stop();
+  reset(row = null, opts) {
+    this.stop(opts);
     this.range = this.rangeOf(row);
     this.onlyRow = row;
     this.results = this.events.map(() => null);
@@ -389,13 +389,17 @@ export class SheetGame {
     this.$('.stars').innerHTML = [1, 2, 3].map((k) => `<span class="${k <= n ? 'on' : ''}">★</span>`).join('');
   }
 
-  stop() {
+  /** keepMic: mikrofon açık kalsın (tekrar için komut notası dinlenir) */
+  stop({ keepMic = false } = {}) {
     this.running = false;
     this.el?.classList.remove('running');
     cancelAnimationFrame(this.raf);
     clearTimeout(this.timer);
-    this.listener?.stop();
-    this.listener = null;
+    cancelAnimationFrame(this.cmdRaf);
+    if (!keepMic) {
+      this.listener?.stop();
+      this.listener = null;
+    }
     this.releasePad?.();
     this.el?.querySelectorAll('[data-act=start], [data-row-play]').forEach((b) => b.removeAttribute('disabled'));
   }
@@ -515,9 +519,9 @@ export class SheetGame {
   }
 
   async start(row = null) {
-    this.reset(row);
+    this.reset(row, { keepMic: true });
     this.el.querySelectorAll('[data-act=start], [data-row-play]').forEach((b) => b.setAttribute('disabled', ''));
-    if (this.input === 'mic') {
+    if (this.input === 'mic' && !this.listener) {
       const status = this.$('.mic-status');
       const level = this.$('.level');
       let silent = false;
@@ -576,6 +580,7 @@ export class SheetGame {
   // ------------------------------------------------------------- Kendi hızımda
   startHold() {
     this.enter(this.range[0]);
+    this.waitSilence = true; // önceki ses (ör. tekrar için çalınan komut notası) ilk nota sayılmasın
     const loop = () => {
       if (!this.running) return;
       this.tickHold(performance.now());
@@ -617,6 +622,10 @@ export class SheetGame {
     const target = midiOf(ev.note);
     const needMs = holdNeedMs(ev.ms, this.input);
     const s = this.sounding(now);
+    if (this.waitSilence) {
+      if (s != null) return;
+      this.waitSilence = false;
+    }
     const rms = this.input === 'mic' ? this.frame?.rms || 0 : this.pressed != null ? 1 : 0;
     const dip = this.holdStart && rms < this.peakRms * (this.reached ? 0.6 : 0.35);
     if (this.isTarget(s, target) && !dip) {
@@ -707,6 +716,7 @@ export class SheetGame {
     const firstNote = this.scored.find((i) => i >= a && i < b) ?? a;
     let t0 = null; // ilk ses duyulunca kurulur: okuma çizgisi öğrenciyi bekler
     let soundSince = 0;
+    let armed = false;
     let last = performance.now();
     let cur = -1;
     const fb = this.$('.cp-feedback');
@@ -741,8 +751,9 @@ export class SheetGame {
       const now = performance.now();
       const s = this.sounding(now);
       if (t0 == null) {
-        // İlk ses: kısa bir an sürmeli (gürültü/tık sayılmasın)
-        if (s == null) soundSince = 0;
+        // İlk ses: önce bir an sessizlik, sonra kısa bir an süren ses (gürültü/tık ya da önceki ses sayılmasın)
+        if (s == null) armed = true;
+        if (s == null || !armed) soundSince = 0;
         else if (!soundSince) soundSince = now;
         if (!soundSince || now - soundSince < 60) {
           this.raf = requestAnimationFrame(loop);
@@ -790,7 +801,7 @@ export class SheetGame {
 
   // ------------------------------------------------------------- Sonuç
   finish() {
-    this.stop();
+    this.stop({ keepMic: true });
     this.highlight(null);
     this.rowEls.forEach((r) => r.classList.remove('active'));
     const [a, b] = this.range;
@@ -838,6 +849,7 @@ export class SheetGame {
       ${full ? '' : '<p><button class="btn" data-act="all">▶ Bütün egzersizi baştan sona çal</button></p>'}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start(this.onlyRow));
     res.querySelector('[data-act=all]')?.addEventListener('click', () => this.start());
+    restartByNote(this, res, () => this.start(this.onlyRow));
     res.scrollIntoView({ behavior: smooth(), block: 'center' });
     this.onFinish?.({ ok, short, wrong, miss, n, full });
   }
