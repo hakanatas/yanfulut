@@ -2,7 +2,7 @@
 import { staff } from './art.js';
 import { instrument } from './instrument.js';
 import { longName, midiOf, noteFromMidi, titleName } from './data/notes.js';
-import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
+import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget, offsetFromTarget, HOLD_TOLERANCE, TOLERANCE, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { say, stopSpeaking } from './voice.js';
 import { progress } from './progress.js';
 import { PHRASES, checkpointPrompt } from './data/phrases.js';
@@ -127,18 +127,30 @@ export function tuningAdvice(cents, note) {
     : `Ses biraz pes (${cents} sent): ${pick(instrument().flatAdvice)}.`;
 }
 
-/** Duyulan nota ve belirgin sapması: "ince Do (+35 sent)" */
-export function heardName(frame) {
-  const c = frame.cents || 0;
-  return `${longName(frame.note)}${Math.abs(c) >= 20 ? ` (${c > 0 ? '+' : ''}${c} sent)` : ''}`;
+/**
+ * Duyulan notanın adı. Hedef verildiyse ve ses hedef sayılıyorsa (±70 sent) hedefin adı ve
+ * hedefe göre sapması yazılır: biraz tiz çalınan ince Do "ince Do diyez" değil "ince Do (+60 sent, biraz tiz) ✓" görünür.
+ */
+export function heardName(frame, target = null, opts = {}) {
+  let id = frame.note;
+  let c = frame.cents || 0;
+  // Tutulan notada (holding) pay, puanlamadaki gibi biraz geniş: titreşimle sınırı aşan ses yine hedef sayılır
+  const ok = target != null && matchesTarget(frame, target, { ...opts, tolerance: opts.holding ? HOLD_TOLERANCE : TOLERANCE });
+  if (ok) {
+    c = Math.round(offsetFromTarget(frame, target, opts) * 100);
+    // Oktav kabul ediliyorsa duyulan oktavdaki adı göster
+    const oct = opts.octaveOk ? 12 * Math.round((frame.midiFloat - target) / 12) : 0;
+    id = noteFromMidi(target + oct);
+  }
+  const how = Math.abs(c) > 70 ? (c > 0 ? ', çok tiz' : ', çok pes') : Math.abs(c) >= 40 ? (c > 0 ? ', biraz tiz' : ', biraz pes') : '';
+  const dev = Math.abs(c) >= 20 ? ` (${c > 0 ? '+' : ''}${c} sent${how})` : '';
+  return `${longName(id)}${dev}${ok ? ' ✓' : ''}`;
 }
 
 /** Mikrofondan duyulan sesin kısa açıklaması (hedef verilirse ona göre) */
 export function heardText(frame, target, opts) {
-  if (frame.muted) return 'Dinliyorum…';
-  if (!frame.note) return 'Dinliyorum…';
-  if (target != null && matchesTarget(frame, target, opts)) return `Duyulan: ${heardName(frame)} ✓`;
-  return `Duyulan: ${heardName(frame)}`;
+  if (frame.muted || !frame.note) return 'Dinliyorum…';
+  return `Duyulan: ${heardName(frame, target, opts)}`;
 }
 
 /**

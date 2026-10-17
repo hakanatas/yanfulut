@@ -368,6 +368,8 @@ export function offsetFromTarget(frame, target, { octaveOk = false } = {}) {
  * parmak pozisyonu yine kabul edilmez.
  */
 export const TOLERANCE = 0.7;
+/** Doğru başlamış bir nota tutulurken pay biraz genişler: titreşimle sınırı aşan ses yanlış sayılmasın */
+export const HOLD_TOLERANCE = 0.85;
 export function matchesTarget(frame, target, { tolerance = TOLERANCE, octaveOk = false } = {}) {
   if (!frame.note) return false;
   return Math.abs(offsetFromTarget(frame, target, { octaveOk })) <= tolerance;
@@ -543,7 +545,7 @@ export class NoteMatcher {
     // Ses kesilirken analiz penceresinde kalan kuyruk hâlâ aynı nota görünür: sessizse sayma
     // Yeni tutma yalnızca ses yükselirken başlar (son 10 ms, son 43 ms'nin yarısından güçlü olmalı)
     const loud = this.since ? level > this.peak * 0.35 : level > (frame.rms || 0) * 0.5;
-    if (loud && matchesTarget(frame, this.target, opts)) {
+    if (loud && matchesTarget(frame, this.target, { ...opts, tolerance: this.since ? HOLD_TOLERANCE : TOLERANCE })) {
       this.lastWrong = null;
       this.lastHit = now;
       if (!this.since) {
