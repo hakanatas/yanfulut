@@ -5,7 +5,7 @@
 // Girdi: mikrofon ya da ekrandaki tuşa basılı tutma.
 import { noteSymbol } from './art.js';
 import { longName, midiOf, shortName, titleName, staffStep, parseNote } from './data/notes.js';
-import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
+import { PitchListener, playNote, playChime, playClick, matchesTarget, HOLD_TOLERANCE, TOLERANCE, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, fingeringToggle, heardName, staffSvg, h, wrongNoteText } from './checkpoints.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
@@ -409,7 +409,12 @@ export class DrillGame {
           this.frame = f;
           this.frameAt = performance.now();
           level.firstElementChild.style.width = `${Math.min(100, (f.rms || 0) * 600)}%`;
-          status.textContent = silent ? SILENT_MIC_MESSAGE : f.note ? `Duyulan: ${heardName(f)}` : 'Dinliyorum…';
+          const cur = this.notes[this.index];
+          const target = cur ? midiOf(cur.note) : null;
+          // Az önce hedef duyulduysa nota tutuluyor sayılır (yazı titreşimle komşu notaya atlamasın)
+          const holding = target != null && this.heardOk?.target === target && performance.now() - this.heardOk.at < 250;
+          if (f.note && target != null && matchesTarget(f, target, { tolerance: holding ? HOLD_TOLERANCE : TOLERANCE })) this.heardOk = { target, at: performance.now() };
+          status.textContent = silent ? SILENT_MIC_MESSAGE : f.note ? `Duyulan: ${heardName(f, target, { holding })}` : 'Dinliyorum…';
         },
         { onStatus: (st) => (silent = st === 'silent') },
       );
@@ -437,9 +442,10 @@ export class DrillGame {
     return f;
   }
 
-  isTarget(s, midi) {
+  /** holding: nota zaten doğru başlamış ve tutuluyor → pay biraz daha geniş (titreşim sınırı aşmasın) */
+  isTarget(s, midi, holding = false) {
     if (s == null) return false;
-    return typeof s === 'number' ? s === midi : matchesTarget(s, midi);
+    return typeof s === 'number' ? s === midi : matchesTarget(s, midi, { tolerance: holding ? HOLD_TOLERANCE : TOLERANCE });
   }
 
   midiOfSounding(s) {
@@ -489,7 +495,7 @@ export class DrillGame {
     const rms = this.input === 'mic' ? this.frame?.rms || 0 : this.pressed != null ? 1 : 0;
     // Süre tamamlandıysa küçük bir düşüş bile yeni nota başlangıcı sayılır
     const dip = this.holdStart && rms < this.peakRms * (this.reached ? 0.6 : 0.35);
-    if (this.isTarget(s, target) && !dip) {
+    if (this.isTarget(s, target, !!this.holdStart) && !dip) {
       this.wrongSince = 0;
       if (!this.holdStart) {
         this.holdStart = now;
@@ -539,7 +545,7 @@ export class DrillGame {
       return;
     }
     // Yanlış nota (önceki notanın sesi bir süre daha duyulabilir: o sayılmaz)
-    if (m != null && !this.isTarget(s, target) && !(m === this.prevMidi && !this.lastHit)) {
+    if (m != null && !this.isTarget(s, target, true) && !(m === this.prevMidi && !this.lastHit)) {
       if (this.wrongMidi !== m) {
         this.wrongMidi = m;
         this.wrongSince = now;
@@ -603,6 +609,7 @@ export class DrillGame {
     const correct = this.notes.map(() => 0);
     const wrong = this.notes.map(() => 0);
     const wrongFrame = {}; // notanın penceresinde duyulan yanlış ses (geri bildirim için)
+    let hitPrev = false; // önceki karede hedef duyuldu mu (tutulan notada pay genişler)
     const onsets = [];
     const detector = new OnsetDetector();
     const follower = new TempoFollower(starts, this.notes.map((n) => ({ rest: false, midi: midiOf(n.note) })));
@@ -677,10 +684,16 @@ export class DrillGame {
         }
       }
       if (cur >= 0) {
-        if (this.isTarget(s, midiOf(this.notes[cur].note))) correct[cur] += dt;
-        else if (s != null) {
-          wrong[cur] += dt;
-          wrongFrame[cur] = s;
+        if (this.isTarget(s, midiOf(this.notes[cur].note), hitPrev)) {
+          correct[cur] += dt;
+          hitPrev = true;
+        } else {
+          hitPrev = false;
+          // Hedefe çok yakın (biraz fazla tiz/pes) ses yanlış nota sayılmaz
+          if (s != null && !this.isTarget(s, midiOf(this.notes[cur].note), true)) {
+            wrong[cur] += dt;
+            wrongFrame[cur] = s;
+          }
         }
         const dur = this.notes[cur].beats * this.beatMs;
         this.setHold((heard - starts[cur]) / dur, this.notes[cur].beats);
