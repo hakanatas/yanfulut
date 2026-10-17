@@ -9,7 +9,7 @@ import { PitchListener, playNote, playChime, playClick, matchesTarget, micErrorM
 import { fingeringSvg, fingeringToggle, staffSvg, h } from './checkpoints.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
-import { OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
+import { CommandNote, OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
 
 
 // Porte ölçüleri
@@ -110,6 +110,30 @@ function drillStaff(notes) {
   }
   out += `<line class="playhead" x1="${X0}" y1="${TOP - 20}" x2="${X0}" y2="${BAR_Y + 40}" hidden/>`;
   return `<svg class="drill-staff" viewBox="0 0 ${width} ${BAR_Y + 46}" width="${width}" height="${BAR_Y + 46}" role="img" aria-label="Antrenman notaları">${out}</svg>`;
+}
+
+/**
+ * Elini sürmeden tekrar: mikrofon açık kalır, enstrümanın komut notası (flütte Si, kemanda La)
+ * uzun çalınınca alıştırma baştan başlar.
+ */
+export function restartByNote(game, box, restart) {
+  const note = instrument().restartNote;
+  if (!game.listener || !note) return;
+  box.insertAdjacentHTML(
+    'beforeend',
+    `<div class="cmd-hint">🎤 Elini sürmeden tekrar: <b>${longName(note)}</b> notasını uzun çal<span class="cmd-bar" aria-hidden="true"><i></i></span></div>`,
+  );
+  const bar = box.querySelector('.cmd-bar i');
+  const cmd = new CommandNote(midiOf(note));
+  const tick = () => {
+    if (!game.listener) return;
+    const now = performance.now();
+    const p = cmd.feed(game.sounding(now), now);
+    bar.style.width = `${p * 100}%`;
+    if (p >= 1) return restart();
+    game.cmdRaf = requestAnimationFrame(tick);
+  };
+  tick();
 }
 
 /** Sonuç kartının alt düğmeleri: tekrar, önceki ve sonraki */
@@ -244,8 +268,8 @@ export class DrillGame {
   }
 
   /** Antrenmanı başa sarar */
-  reset() {
-    this.stop();
+  reset(opts) {
+    this.stop(opts);
     this.index = 0;
     this.results = this.notes.map(() => null);
     this.noteEls.forEach((g) => {
@@ -265,12 +289,16 @@ export class DrillGame {
     this.$('.stars').innerHTML = [1, 2, 3].map((k) => `<span class="${k <= n ? 'on' : ''}">★</span>`).join('');
   }
 
-  stop() {
+  /** keepMic: mikrofon açık kalsın (tekrar için komut notası dinlenir) */
+  stop({ keepMic = false } = {}) {
     this.running = false;
     cancelAnimationFrame(this.raf);
     clearTimeout(this.countTimer);
-    this.listener?.stop();
-    this.listener = null;
+    cancelAnimationFrame(this.cmdRaf);
+    if (!keepMic) {
+      this.listener?.stop();
+      this.listener = null;
+    }
     this.demo?.stop();
     this.demo = null;
     this.releasePad?.();
@@ -335,9 +363,9 @@ export class DrillGame {
   }
 
   async start() {
-    this.reset();
+    this.reset({ keepMic: true });
     this.el.querySelector('[data-act=start]').setAttribute('disabled', '');
-    if (this.input === 'mic') {
+    if (this.input === 'mic' && !this.listener) {
       const status = this.$('.mic-status');
       const level = this.$('.level');
       let silent = false;
@@ -387,6 +415,7 @@ export class DrillGame {
   startHold() {
     this.index = 0;
     this.enterNote(0);
+    this.waitSilence = true; // önceki ses (ör. tekrar için çalınan komut notası) ilk nota sayılmasın
     const loop = () => {
       if (!this.running) return;
       this.tickHold(performance.now());
@@ -414,6 +443,10 @@ export class DrillGame {
     // Süre affedilmez: yazılı sürenin neredeyse tamamı tutulmalı (scoring.js)
     const needMs = holdNeedMs(n.beats * this.beatMs, this.input);
     const s = this.sounding(now);
+    if (this.waitSilence) {
+      if (s != null) return;
+      this.waitSilence = false;
+    }
     const fb = this.$('.cp-feedback');
     // Aynı nota tekrarlanırken notalar arasındaki boşluk çok kısa olabilir (dil vuruşu, yay değişimi):
     // ses şiddetindeki ani düşüş de "bırakma" sayılır.
@@ -536,6 +569,7 @@ export class DrillGame {
     this.highlight(0);
     let t0 = null; // ilk ses duyulunca kurulur
     let soundSince = 0;
+    let armed = false; // önce bir an sessizlik: önceki sesin devamı başlangıç sayılmaz
     let last = performance.now();
     let cur = -1;
     const evaluate = (i) => {
@@ -564,7 +598,8 @@ export class DrillGame {
       const now = performance.now();
       const s = this.sounding(now);
       if (t0 == null) {
-        if (s == null) soundSince = 0;
+        if (s == null) armed = true;
+        if (s == null || !armed) soundSince = 0;
         else if (!soundSince) soundSince = now;
         if (!soundSince || now - soundSince < 60) {
           this.raf = requestAnimationFrame(loop);
@@ -617,7 +652,7 @@ export class DrillGame {
     const short = count('short');
     const wrong = count('wrong');
     const miss = count('miss');
-    this.stop();
+    this.stop({ keepMic: true });
     const ratio = ok / n;
     const stars = ratio >= 0.9 ? 3 : ratio >= 0.7 ? 2 : 1;
     progress.completeSong(`drill-${this.drill.id}`, stars);
@@ -638,6 +673,7 @@ export class DrillGame {
       <p>${ratio === 1 ? 'Kusursuz! Hem notalar hem süreler doğru.' : 'Renkli notalar portede duruyor: sarı süre eksik, kırmızı yanlış ya da kaçırılan nota.'}</p>
       ${navButtons(this.nav, 'antrenman')}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start());
+    restartByNote(this, res, () => this.start());
     res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
