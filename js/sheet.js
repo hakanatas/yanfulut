@@ -620,7 +620,7 @@ export class SheetGame {
       return;
     }
     const target = midiOf(ev.note);
-    const needMs = holdNeedMs(ev.ms, this.input);
+    const needMs = holdNeedMs(ev.ms);
     const s = this.sounding(now);
     if (this.waitSilence) {
       if (s != null) return;
@@ -662,6 +662,15 @@ export class SheetGame {
       this.setHold(0);
     }
     const m = this.midiOfSounding(s);
+    // Öğrenci sıradaki notaya geçti ama bu nota süresine ulaşmadı: yanlış değil, süresi kısa kaldı
+    const nextEv = this.events[i + 1];
+    if (m != null && this.lastHit && i + 1 < this.range[1] && nextEv && !nextEv.rest && nextEv.note !== ev.note && this.isTarget(s, midiOf(nextEv.note))) {
+      const beatsHeld = Math.max(0.5, Math.round(((this.lastHit - (this.holdStart || this.lastHit)) / this.beatMs) * 2) / 2);
+      this.mark(i, this.firstTry === 'wrong' ? 'wrong' : 'short');
+      this.enter(i + 1);
+      fb.textContent = `Önceki nota (${shortName(ev.note)}) kısa kaldı: ${beatsText(ev.beats * (ev.fermata ? FERMATA : 1))} tutulmalıydı (yaklaşık ${beatsText(beatsHeld)} tuttun).`;
+      return;
+    }
     if (m != null && !this.isTarget(s, target) && !(m === this.prevMidi && !this.lastHit)) {
       if (this.wrongMidi !== m) {
         this.wrongMidi = m;
