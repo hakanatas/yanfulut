@@ -28,8 +28,8 @@ export const latencyOf = (input) => (input === 'mic' ? 90 : 10);
 /** Tempolu çalmada eksik kalabilecek en uzun süre (ms): dil vurma boşluğu + algılama payı */
 export const missingAllowed = (ms) => Math.max(170, ms * 0.12);
 
-/** Kendi hızımda: notanın tutulması gereken süre (ms) */
-export const holdNeedMs = (ms, input) => Math.max(250, ms * 0.97 - (input === 'mic' ? 40 : 0));
+/** Kendi hızımda: notanın tutulması gereken süre (ms) — tempolu moddaki payla aynı (dil vurma boşluğu + algılama) */
+export const holdNeedMs = (ms) => Math.max(250, ms - missingAllowed(ms));
 
 /**
  * Tempolu çalmada bir notanın sonucu.

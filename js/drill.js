@@ -432,6 +432,7 @@ export class DrillGame {
     this.peakRms = 0;
     this.wrongSince = 0;
     this.wrongMidi = null;
+    this.prevMidi = i > 0 ? midiOf(this.notes[i - 1].note) : null;
     this.showTarget(i);
     this.highlight(i);
     this.setHold(0);
@@ -441,7 +442,7 @@ export class DrillGame {
     const n = this.notes[this.index];
     const target = midiOf(n.note);
     // Süre affedilmez: yazılı sürenin neredeyse tamamı tutulmalı (scoring.js)
-    const needMs = holdNeedMs(n.beats * this.beatMs, this.input);
+    const needMs = holdNeedMs(n.beats * this.beatMs);
     const s = this.sounding(now);
     if (this.waitSilence) {
       if (s != null) return;
@@ -490,9 +491,20 @@ export class DrillGame {
       this.holdStart = 0;
       this.setHold(0);
     }
-    // Yanlış nota
     const m = this.midiOfSounding(s);
-    if (m != null && !this.isTarget(s, target)) {
+    // Öğrenci sıradaki notaya geçti ama bu nota süresine ulaşmadı: yanlış değil, süresi kısa kaldı
+    const nextN = this.notes[this.index + 1];
+    if (m != null && this.lastHit && nextN && nextN.note !== n.note && this.isTarget(s, midiOf(nextN.note))) {
+      const beatsHeld = Math.max(0.5, Math.round(((this.lastHit - (this.holdStart || this.lastHit)) / this.beatMs) * 2) / 2);
+      if (this.results[this.index] !== 'wrong') this.results[this.index] = 'short';
+      this.noteEls[this.index].classList.remove('current');
+      this.noteEls[this.index].classList.add('short');
+      this.advance();
+      this.$('.cp-feedback').textContent = `Önceki nota (${shortName(n.note)}) kısa kaldı: ${valueOf(n.beats)[2]} tutulmalıydı (yaklaşık ${String(beatsHeld).replace('.', ',')} vuruş tuttun).`;
+      return;
+    }
+    // Yanlış nota (önceki notanın sesi bir süre daha duyulabilir: o sayılmaz)
+    if (m != null && !this.isTarget(s, target) && !(m === this.prevMidi && !this.lastHit)) {
       if (this.wrongMidi !== m) {
         this.wrongMidi = m;
         this.wrongSince = now;

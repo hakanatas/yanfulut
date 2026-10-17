@@ -169,7 +169,7 @@ export class DotsGame {
   /** Sıradaki notanın tutulması gereken süre (ms) */
   needMs() {
     const n = this.song.notes[this.index];
-    return n ? holdNeedMs(n.beats * this.beatMs, this.mode === 'mic' ? 'mic' : 'touch') : 0;
+    return n ? holdNeedMs(n.beats * this.beatMs) : 0;
   }
 
   /** Tutma ilerlemesi: çubuk, vuruş noktaları ve şeritteki nota */
