@@ -1,7 +1,7 @@
 // Videoyu durduran etkileşimli duraklar: soru, nota çalma, ses tutma, nefes egzersizi.
 import { staff } from './art.js';
 import { instrument } from './instrument.js';
-import { longName, midiOf, titleName } from './data/notes.js';
+import { longName, midiOf, noteFromMidi, titleName } from './data/notes.js';
 import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { say, stopSpeaking } from './voice.js';
 import { progress } from './progress.js';
@@ -127,12 +127,38 @@ export function tuningAdvice(cents, note) {
     : `Ses biraz pes (${cents} sent): ${pick(instrument().flatAdvice)}.`;
 }
 
+/** Duyulan nota ve belirgin sapması: "ince Do (+35 sent)" */
+export function heardName(frame) {
+  const c = frame.cents || 0;
+  return `${longName(frame.note)}${Math.abs(c) >= 20 ? ` (${c > 0 ? '+' : ''}${c} sent)` : ''}`;
+}
+
 /** Mikrofondan duyulan sesin kısa açıklaması (hedef verilirse ona göre) */
 export function heardText(frame, target, opts) {
   if (frame.muted) return 'Dinliyorum…';
   if (!frame.note) return 'Dinliyorum…';
-  if (target != null && matchesTarget(frame, target, opts)) return `Duyulan: ${longName(frame.note)} ✓`;
-  return `Duyulan: ${longName(frame.note)}`;
+  if (target != null && matchesTarget(frame, target, opts)) return `Duyulan: ${heardName(frame)} ✓`;
+  return `Duyulan: ${heardName(frame)}`;
+}
+
+/**
+ * Yanlış nota geri bildirimi. Ses iki nota arasında kaldıysa (ör. ince Do çok tiz çalınınca Do diyeze
+ * yaklaşır) akort önerisi; tam başka bir notaysa hangi parmağın kapatılıp kaldırılacağı söylenir.
+ * heard: mikrofon karesi ya da (dokunmada) midi numarası
+ */
+export function wrongNoteText(heard, targetId) {
+  const midi = typeof heard === 'number' ? heard : heard.midi;
+  const heardId = noteFromMidi(midi);
+  const target = midiOf(targetId);
+  const text = `Bu ${longName(heardId)}; hedef ${longName(targetId)}.`;
+  const mf = typeof heard === 'object' ? heard.midiFloat : null;
+  if (mf != null && Math.abs(mf - target) < 1.5 && Math.abs(mf - midi) > 0.25) {
+    const c = Math.round((mf - target) * 100);
+    const adv = c > 0 ? instrument().sharpAdvice : instrument().flatAdvice;
+    return `${text} Ses hedefe yakın ama ${Math.abs(c)} sent ${c > 0 ? 'tiz' : 'pes'}: ${typeof adv === 'function' ? adv(targetId) : adv}.`;
+  }
+  const fix = instrument().fingerFix?.(heardId, targetId);
+  return `${text} ${fix || 'Parmaklarını resimle karşılaştır.'}`;
 }
 
 function micPanel(card, onCleanup, { onFrame, target }) {
@@ -201,10 +227,8 @@ function playCheck(card, c, { finish, onCleanup }) {
       const octaves = Math.round(d / 12);
       if (octaves !== 0 && Math.abs(d - octaves * 12) <= 0.7) {
         fb.textContent = octaves > 0 ? 'Doğru nota ama bir oktav yüksek: daha yavaş ve geniş üfle.' : 'Doğru nota ama bir oktav pes: havayı biraz hızlandır.';
-      } else if (Math.abs(d) < 1.5) {
-        fb.textContent = d > 0 ? 'Çok yakın! Ses biraz tiz: havayı yumuşat, parmaklarının delikleri tam kapattığından emin ol.' : 'Çok yakın! Ses biraz pes: havayı biraz hızlandır, parmaklarının delikleri tam kapattığından emin ol.';
       } else {
-        fb.textContent = `Şu an ${longName(frame.note)} duyuyorum. Parmaklarını resimdekiyle karşılaştır.`;
+        fb.textContent = wrongNoteText(frame, c.note);
       }
     },
   });
