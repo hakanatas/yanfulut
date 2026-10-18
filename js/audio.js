@@ -365,9 +365,14 @@ export function offsetFromTarget(frame, target, { octaveOk = false } = {}) {
 // Enstrüman akordunu öğrenme. Pek çok flüt (baş kısmı içeride) ya da keman genel olarak
 // 30–50 sent tiz/pes çalar; ince Do gibi doğası gereği tiz notalar bu yüzden komşu notaya
 // kayar. Doğru kabul edilen notaların ortak sapması öğrenilir ve notalar ona göre değerlendirilir.
-// Tek bir notanın sapması akort sayılmaz: en az üç farklı notanın ortancası alınır, ±40 sentle sınırlanır.
+// Yanlış öğrenme notaları bozmasın diye:
+//  - yalnızca hedefe ±60 sent yakın sesler öğrenilir (komşu nota akordu asla kaydıramaz),
+//  - tek bir notanın sapması akort sayılmaz: en az üç farklı notanın ortancası alınır,
+//  - kaydırma en çok ±25 senttir (öğrencinin nefesle değişen perdesi için pay kalır),
+//  - yalnızca bu sekmede saklanır: ortak bilgisayarda bir öğrencinin flütü diğerini etkilemez.
 const tuning = { key: null, offset: 0, notes: new Map(), count: 0 };
-const MAX_TUNING = 0.4;
+const MAX_TUNING = 0.25;
+const LEARN_MAX = 0.6;
 const median = (a) => {
   const b = [...a].sort((x, y) => x - y);
   return b.length % 2 ? b[b.length >> 1] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2;
@@ -379,7 +384,8 @@ function tuningState() {
     tuning.notes = new Map();
     tuning.count = 0;
     try {
-      tuning.offset = Math.max(-MAX_TUNING, Math.min(MAX_TUNING, Number(JSON.parse(localStorage.getItem(key))?.offset) || 0));
+      localStorage.removeItem(key); // önceki sürüm kalıcı saklıyordu; kaymış olabilecek değeri sil
+      tuning.offset = Math.max(-MAX_TUNING, Math.min(MAX_TUNING, Number(JSON.parse(sessionStorage.getItem(key))?.offset) || 0));
     } catch {
       tuning.offset = 0;
     }
@@ -398,7 +404,7 @@ export function learnTuning(frame, target) {
   const t = tuningState();
   let d = frame.midiFloat - target;
   d -= 12 * Math.round(d / 12);
-  if (Math.abs(d - t.offset) > HOLD_TOLERANCE) return;
+  if (Math.abs(d) > LEARN_MAX) return;
   const arr = t.notes.get(target) || [];
   arr.push(d);
   if (arr.length > 120) arr.shift();
@@ -409,7 +415,7 @@ export function learnTuning(frame, target) {
   const next = Math.max(-MAX_TUNING, Math.min(MAX_TUNING, median(meds)));
   t.offset = Math.round((t.offset * 0.5 + next * 0.5) * 100) / 100; // yavaş uyum
   try {
-    localStorage.setItem(t.key, JSON.stringify({ offset: t.offset }));
+    sessionStorage.setItem(t.key, JSON.stringify({ offset: t.offset }));
   } catch {
     /* saklanamazsa yalnızca bu oturumda geçerli */
   }
@@ -422,7 +428,7 @@ export function resetTuning() {
   t.notes = new Map();
   t.count = 0;
   try {
-    localStorage.removeItem(t.key);
+    sessionStorage.removeItem(t.key);
   } catch {
     /* yok say */
   }
@@ -438,8 +444,12 @@ export function resetTuning() {
 export const TOLERANCE = 0.7;
 /** Doğru başlamış bir nota tutulurken pay biraz genişler: titreşimle sınırı aşan ses yanlış sayılmasın */
 export const HOLD_TOLERANCE = 0.85;
+/** Akort ne olursa olsun komşu notanın kendisi (100 sent) asla hedef sayılmaz */
+const RAW_MAX = 0.97;
 export function matchesTarget(frame, target, { tolerance = TOLERANCE, octaveOk = false } = {}) {
   if (!frame.note) return false;
+  const raw = (frame.midiFloat ?? frame.midi) - target;
+  if (Math.abs(raw - (octaveOk ? 12 * Math.round(raw / 12) : 0)) > RAW_MAX) return false;
   return Math.abs(offsetFromTarget(frame, target, { octaveOk })) <= tolerance;
 }
 
