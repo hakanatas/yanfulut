@@ -7,10 +7,12 @@
 //   B4:2!  korona (𝄐): nota yazılandan uzun tutulur
 //   A4~    bağ: sonraki aynı notaya bağlanır, dil vurmadan tek nota gibi çalınır
 //   B4:.5  sekizlik, B4:1.5 noktalı dörtlük, R:.5 sekizlik sus
+// Kağıttaki egzersizlerin ardından her ünitede aynı notalar ve ritimlerle ek alıştırmalar ve telif
+// süresi dolmuş geleneksel ezgiler var.
 // Her ünite yeni notalarını "newNotes" ile tanıtır; egzersizler yalnızca o üniteye kadar tanıtılan
 // notaları kullanır (tools/check-course.mjs denetler).
 
-export const SOURCE = 'Learn As You Play Flute çalışma kağıdı, Ünite 1–5';
+export const SOURCE = 'Learn As You Play Flute çalışma kağıdı, Ünite 1–5; ek alıştırmalar ve geleneksel ezgiler uygulamaya özgüdür';
 
 export const UNITS = [
   {
@@ -49,6 +51,46 @@ export const UNITS = [
         time: 4,
         bpm: 76,
         rows: ['G4:2 A4 B4 | A4:2 B4 C5 | B4:2 G4 B4 | A4:2 A4:2', 'C5:2 A4 C5 | B4:2 G4 B4 | A4:2 B4 A4 | G4:2 G4:2'],
+      },
+      {
+        id: 'u1-e6',
+        title: 'Egzersiz 6',
+        focus: 'Sol ve La: pes notalarda dolgun ses',
+        time: 4,
+        bpm: 72,
+        rows: ['G4:2 A4:2 | G4:2 A4:2 | G4 A4 G4 A4 | G4:2 G4:2', 'A4:2 G4:2 | A4 G4 A4 G4 | A4 A4 G4 G4 | G4:2 G4:2'],
+      },
+      {
+        id: 'u1-e7',
+        title: 'Egzersiz 7',
+        focus: 'Basamak basamak: Sol\'dan ince Do\'ya çık ve in',
+        time: 4,
+        bpm: 76,
+        rows: ['G4 A4 B4 C5 | B4 A4 G4:2 | G4 A4 B4 C5 | C5:2 C5:2', 'C5 B4 A4 G4 | A4 B4 C5:2 | C5 B4 A4 G4 | G4:2 G4:2'],
+      },
+      {
+        id: 'u1-e8',
+        title: 'Egzersiz 8',
+        focus: 'Atlamalar: Sol–Si ve La–ince Do',
+        time: 4,
+        bpm: 72,
+        rows: ['G4 B4 G4 B4 | A4 C5 A4 C5 | G4 B4 A4 C5 | B4:2 B4:2', 'C5 A4 C5 A4 | B4 G4 B4 G4 | C5 A4 B4 G4 | G4:2 G4:2'],
+      },
+      {
+        id: 'u1-e9',
+        title: 'Egzersiz 9',
+        focus: 'Yankı: aynı kalıp farklı notalardan',
+        time: 4,
+        bpm: 80,
+        rows: ['G4 A4 B4:2 | A4 B4 C5:2 | B4 A4 G4:2 | A4:2 A4:2', 'C5 B4 A4:2 | B4 A4 G4:2 | A4 B4 C5 A4 | G4:2 G4:2'],
+      },
+      {
+        id: 'u1-corek',
+        title: 'Sıcak Çörekler',
+        focus: 'Geleneksel İngiliz ezgisi (Hot Cross Buns) · üç nota',
+        time: 4,
+        bpm: 80,
+        rows: ['B4 A4 G4:2 | B4 A4 G4:2 | G4 G4 G4 G4 | A4 A4 A4 A4', 'B4 A4 G4:2 | B4 A4 G4:2 | G4 G4 A4 A4 | B4 A4 G4:2'],
       },
       {
         id: 'u1-ninni',
@@ -105,6 +147,30 @@ export const UNITS = [
         rows: ['B4:2! R:2 || B4 A4 B4 A4 | G4:2 R:2 | A4 B4 C5 B4', 'A4:2 R:2 | G4 A4 B4 C5 | B4:2 R:2 | B4 A4 B4 A4 | G4:2 R:2'],
       },
       {
+        id: 'u2-e4',
+        title: 'Egzersiz 4',
+        focus: '3/4: ikilik ve dörtlük',
+        time: 3,
+        bpm: 80,
+        rows: ['B4:2! R:1 || G4:2 A4 | B4:2 C5 | B4:2 A4 | G4:2 R:1', 'A4:2 B4 | C5:2 B4 | A4:2 G4 | A4:2 R:1 | G4:2 R:1'],
+      },
+      {
+        id: 'u2-e5',
+        title: 'Egzersiz 5',
+        focus: 'Sus ile başlayan ölçüler: "bir"de sus, "iki"de çal',
+        time: 4,
+        bpm: 76,
+        rows: ['B4:2! R:2 || R:1 B4 A4 G4 | R:1 A4 B4 C5 | R:1 C5 B4 A4 | B4:2 R:2', 'R:2 G4 A4 | B4:2 R:2 | R:2 A4 B4 | G4:2 R:2'],
+      },
+      {
+        id: 'u2-e6',
+        title: 'Egzersiz 6',
+        focus: 'Vals: bir-iki-üç, ilk vuruş güçlü',
+        time: 3,
+        bpm: 84,
+        rows: ['G4 B4 B4 | A4 C5 C5 | B4 A4 G4 | A4:2 R:1', 'G4 B4 B4 | A4 C5 C5 | B4 A4 B4 | G4:2 R:1'],
+      },
+      {
         id: 'u2-ton',
         title: 'Uzun Ses Çalışması',
         focus: 'Her korona notasını dolgun ve eşit bir sesle tut',
@@ -117,10 +183,11 @@ export const UNITS = [
   {
     id: 'unite-3',
     title: 'Ünite 3',
-    subtitle: 'Fa ve pes Mi · noktalı ikilik',
+    subtitle: 'Fa ve pes Mi · noktalı ikilik ve birlik',
     newNotes: ['F4', 'E4'],
     concepts: [
       { sym: '𝅗𝅥.', title: 'Noktalı ikilik', text: 'Notanın yanındaki nokta, süresine yarısını ekler: 2 + 1 = 3 vuruş.' },
+      { sym: '𝅝', title: 'Birlik nota', text: 'İçi boş, sapsız nota: 4 vuruş, 4/4\'te ölçünün tamamı. Sonuna kadar havayı eşit ver.' },
       { sym: 'Fa', title: 'Fa', text: 'Sol el üç parmak kapalı, sağ el yalnızca işaret parmağı kapalı; sağ serçe Mi♭ anahtarında.' },
       { sym: 'Mi', title: 'Pes Mi', text: 'Fa\'ya ek olarak sağ orta parmağı da kapat. Havayı yavaş ve geniş üfle.' },
     ],
@@ -156,6 +223,38 @@ export const UNITS = [
         time: 4,
         bpm: 76,
         rows: ['E4:2! R:2 || A4 G4 F4 E4 | F4 G4 A4 F4 | G4 F4 E4 F4', 'G4:3 R:1 | F4 E4 F4 G4 | A4 C5 A4 F4 | E4 F4 G4 G4 | F4:4'],
+      },
+      {
+        id: 'u3-e5',
+        title: 'Egzersiz 5',
+        focus: 'Mi–Fa–Sol: pes notalar arasında küçük adımlar',
+        time: 4,
+        bpm: 72,
+        rows: ['E4:2! R:2 || E4 F4 G4:2 | F4 G4 A4:2 | G4 F4 E4:2 | F4:4', 'G4 F4 E4 F4 | G4:3 R:1 | A4 G4 F4 G4 | E4:4'],
+      },
+      {
+        id: 'u3-e6',
+        title: 'Egzersiz 6',
+        focus: 'Noktalı ikilik + dörtlük: 3 tut, 1 çal',
+        time: 4,
+        bpm: 76,
+        rows: ['F4:3 G4 | A4:3 B4 | C5:3 A4 | G4:4', 'A4:3 G4 | F4:3 E4 | F4:3 G4 | F4:4'],
+      },
+      {
+        id: 'u3-e7',
+        title: 'Egzersiz 7',
+        focus: 'Mi\'den ince Do\'ya: altı notanın hepsi',
+        time: 4,
+        bpm: 80,
+        rows: ['E4 F4 G4 A4 | B4 C5 B4 A4 | G4 F4 E4 F4 | G4:2 R:2', 'C5 B4 A4 G4 | F4 E4 F4 G4 | A4 B4 C5 A4 | G4:2 E4:2', 'F4 A4 G4 B4 | A4 C5 B4 G4 | A4 F4 G4 E4 | F4:4'],
+      },
+      {
+        id: 'u3-ay',
+        title: 'Ay Işığında',
+        focus: 'Geleneksel Fransız ezgisi (Au clair de la lune) · birlik notalar',
+        time: 4,
+        bpm: 80,
+        rows: ['F4 F4 F4 G4 | A4:2 G4:2 | F4 A4 G4 G4 | F4:4', 'F4 F4 F4 G4 | A4:2 G4:2 | F4 A4 G4 G4 | F4:4'],
       },
       {
         id: 'u3-koral',
@@ -204,6 +303,30 @@ export const UNITS = [
         rows: ['C5:2! R:2 || C5 C5 A4 F4 | E4 G4 E4 G4~ | G4 A4 G4 G4 | F4:2 R:2', 'R:4 | C5 C5 A4 F4 | E4 G4 E4 G4~ | G4 C5 C5 C5 | F4:4'],
       },
       {
+        id: 'u4-e4',
+        title: 'Egzersiz 4',
+        focus: '2/4: kısa ölçüler, "bir-iki" diye say',
+        time: 2,
+        bpm: 84,
+        rows: ['A4 B4 | C5 A4 | G4 F4 | E4 R:1 | F4 G4 | A4 F4 | G4:2 | R:2', 'C5 B4 | A4 G4 | F4 G4 | A4:2 | G4 E4 | F4 G4 | F4:2'],
+      },
+      {
+        id: 'u4-e5',
+        title: 'Egzersiz 5',
+        focus: 'Ölçü çizgisini aşan bağlar',
+        time: 4,
+        bpm: 76,
+        rows: ['C5:2! R:2 || A4:2 B4 C5~ | C5 B4 A4:2 | G4:2 A4 B4~ | B4 A4 G4:2', 'F4:2 G4 A4~ | A4 G4 F4:2 | E4:2 F4 G4~ | G4:4'],
+      },
+      {
+        id: 'u4-e6',
+        title: 'Egzersiz 6',
+        focus: '3/4: tam ölçü sus ve bağ',
+        time: 3,
+        bpm: 80,
+        rows: ['C5:2! R:1 || A4 B4 C5 | G4:3 | R:3 | F4 G4 A4 | E4:2 F4~ | F4:3', 'R:3 | A4 G4 F4 | G4:2 A4~ | A4 B4 C5 | A4:3 | F4:3'],
+      },
+      {
         id: 'u4-ton',
         title: 'Uzun Ses Çalışması',
         focus: 'Üst dudak sabit, alt dudak gevşek; koronayı olabildiğince uzun tut',
@@ -247,12 +370,62 @@ export const UNITS = [
         bpm: 72,
         rows: ['D5:2! R:2 || D5:2 C5 R:1! | D5:2 Bb4 R:1! | D5:2 A4 R:1!', 'D5:3 R:1! | D5:2 Bb4 R:1! | D5:2 A4 R:1! | D5:2 G4 R:1! | D5:4'],
       },
+      {
+        id: 'u5-e4',
+        title: 'Egzersiz 4',
+        focus: 'Fa majör: Fa\'dan ince Re\'ye',
+        time: 4,
+        bpm: 76,
+        rows: ['F4 G4 A4 Bb4 | C5 D5 C5:2 | D5 C5 Bb4 A4 | G4:2 F4:2', 'F4 A4 C5 A4 | Bb4 D5 C5:2 | Bb4 A4 G4 E4 | F4:4'],
+      },
+      {
+        id: 'u5-e5',
+        title: 'Egzersiz 5',
+        focus: 'Si mi, Si bemol mü? Parmağı dikkatle değiştir',
+        time: 4,
+        bpm: 72,
+        rows: ['B4:2! R:2 || A4 B4 C5 B4 | A4 Bb4 C5 Bb4 | A4 B4 A4 G4', 'A4 Bb4 A4 G4 | G4 B4 D5 B4 | F4 Bb4 D5 Bb4 | G4:2 B4:2 | A4 Bb4 A4 G4 | G4:4'],
+      },
+      {
+        id: 'u5-yildiz',
+        title: 'Küçük Yıldız',
+        focus: 'Geleneksel Fransız ezgisi (Ah vous dirai-je, maman) · Fa majör',
+        time: 4,
+        bpm: 80,
+        rows: ['F4 F4 C5 C5 | D5 D5 C5:2 | Bb4 Bb4 A4 A4 | G4 G4 F4:2', 'C5 C5 Bb4 Bb4 | A4 A4 G4:2 | C5 C5 Bb4 Bb4 | A4 A4 G4:2', 'F4 F4 C5 C5 | D5 D5 C5:2 | Bb4 Bb4 A4 A4 | G4 G4 F4:2'],
+      },
+      {
+        id: 'u5-hans',
+        title: 'Küçük Hans',
+        focus: 'Geleneksel Alman ezgisi (Hänschen klein) · Sol majör',
+        time: 4,
+        bpm: 84,
+        rows: [
+          'D5 B4 B4:2 | C5 A4 A4:2 | G4 A4 B4 C5 | D5 D5 D5:2',
+          'D5 B4 B4:2 | C5 A4 A4:2 | G4 B4 D5 D5 | G4:4',
+          'A4 A4 A4 A4 | A4 B4 C5:2 | B4 B4 B4 B4 | B4 C5 D5:2',
+          'D5 B4 B4:2 | C5 A4 A4:2 | G4 B4 D5 D5 | G4:4',
+        ],
+      },
+      {
+        id: 'u5-zil',
+        title: 'Zil Sesleri',
+        focus: 'Jingle Bells nakaratı (J. Pierpont, 1857) · kolay düzenleme',
+        time: 4,
+        bpm: 88,
+        rows: [
+          'A4 A4 A4:2 | A4 A4 A4:2 | A4 C5 F4 G4 | A4:4',
+          'Bb4 Bb4 Bb4 Bb4 | Bb4 A4 A4 A4 | A4 G4 G4 A4 | G4:2 C5:2',
+          'A4 A4 A4:2 | A4 A4 A4:2 | A4 C5 F4 G4 | A4:4',
+          'Bb4 Bb4 Bb4 Bb4 | Bb4 A4 A4 A4 | C5 C5 Bb4 G4 | F4:4',
+        ],
+      },
     ],
   },
   {
     id: 'parcalar',
     title: 'Parçalar',
-    subtitle: 'Dört notayla şarkılar: La, Si, İnce Do, İnce Re',
+    subtitle: 'Sevilen ezgiler · sekizlik ve noktalı dörtlük',
     newNotes: [],
     concepts: [
       { sym: '♪', title: 'Sekizlik nota', text: 'Yarım vuruş. İki sekizlik bir dörtlük eder; "tu-tu" diye hızlıca dil vur.' },
@@ -277,6 +450,20 @@ export const UNITS = [
           // Ara ezgi
           'A4 R:1 C5 R:1 | B4 C5:.5 B4:1.5 R:1 | R:1 B4:.5 B4:.5 B4:.5 B4:1.5 | C5 D5:.5 C5 R:.5 R:1',
           'R:1 A4:.5 A4:.5 A4:.5 A4:1.5 | B4 C5:.5 D5 C5:1.5 | A4:4',
+        ],
+      },
+      {
+        id: 'nese',
+        title: 'Neşeye Övgü',
+        focus: 'Kolay düzenleme · Fa majör, noktalı dörtlük ve sekizlik',
+        credit: 'Ludwig van Beethoven, 9. Senfoni (1824). Üçüncü satırın sonunda pes Do yerine ince Do çalınır.',
+        time: 4,
+        bpm: 80,
+        rows: [
+          'A4 A4 Bb4 C5 | C5 Bb4 A4 G4 | F4 F4 G4 A4 | A4:1.5 G4:.5 G4:2',
+          'A4 A4 Bb4 C5 | C5 Bb4 A4 G4 | F4 F4 G4 A4 | G4:1.5 F4:.5 F4:2',
+          'G4 G4 A4 F4 | G4 A4:.5 Bb4:.5 A4 F4 | G4 A4:.5 Bb4:.5 A4 G4 | F4 G4 C5:2',
+          'A4 A4 Bb4 C5 | C5 Bb4 A4 G4 | F4 F4 G4 A4 | G4:1.5 F4:.5 F4:2',
         ],
       },
     ],
