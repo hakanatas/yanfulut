@@ -2,7 +2,7 @@
 import { staff } from './art.js';
 import { instrument } from './instrument.js';
 import { longName, midiOf, noteFromMidi, titleName } from './data/notes.js';
-import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget, offsetFromTarget, HOLD_TOLERANCE, TOLERANCE, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
+import { PitchListener, NoteMatcher, playNote, playChime, matchesTarget, offsetFromTarget, HOLD_TOLERANCE, TOLERANCE, tuningOffset, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { say, stopSpeaking } from './voice.js';
 import { progress } from './progress.js';
 import { PHRASES, checkpointPrompt } from './data/phrases.js';
@@ -132,8 +132,10 @@ export function tuningAdvice(cents, note) {
  * hedefe göre sapması yazılır: biraz tiz çalınan ince Do "ince Do diyez" değil "ince Do (+60 sent, biraz tiz) ✓" görünür.
  */
 export function heardName(frame, target = null, opts = {}) {
-  let id = frame.note;
-  let c = frame.cents || 0;
+  // Öğrenilen enstrüman akordu düşülerek en yakın nota (akort tiz olsa da notalar doğru adlansın)
+  const cal = frame.midiFloat != null ? frame.midiFloat - tuningOffset() : frame.midi;
+  let id = noteFromMidi(Math.round(cal));
+  let c = Math.round((cal - Math.round(cal)) * 100);
   // Tutulan notada (holding) pay, puanlamadaki gibi biraz geniş: titreşimle sınırı aşan ses yine hedef sayılır
   const ok = target != null && matchesTarget(frame, target, { ...opts, tolerance: opts.holding ? HOLD_TOLERANCE : TOLERANCE });
   if (ok) {
@@ -159,11 +161,12 @@ export function heardText(frame, target, opts) {
  * heard: mikrofon karesi ya da (dokunmada) midi numarası
  */
 export function wrongNoteText(heard, targetId) {
-  const midi = typeof heard === 'number' ? heard : heard.midi;
+  // Mikrofon karesinde öğrenilen enstrüman akordu düşülür
+  const mf = typeof heard === 'object' && heard.midiFloat != null ? heard.midiFloat - tuningOffset() : null;
+  const midi = mf != null ? Math.round(mf) : typeof heard === 'number' ? heard : heard.midi;
   const heardId = noteFromMidi(midi);
   const target = midiOf(targetId);
   const text = `Bu ${longName(heardId)}; hedef ${longName(targetId)}.`;
-  const mf = typeof heard === 'object' ? heard.midiFloat : null;
   if (mf != null && Math.abs(mf - target) < 1.5 && Math.abs(mf - midi) > 0.25) {
     const c = Math.round((mf - target) * 100);
     const adv = c > 0 ? instrument().sharpAdvice : instrument().flatAdvice;

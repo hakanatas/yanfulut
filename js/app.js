@@ -7,7 +7,7 @@ import { DotsGame } from './dots.js';
 import { DrillGame } from './drill.js';
 import { SheetGame } from './sheet.js';
 import { progress } from './progress.js';
-import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
+import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE, tuningOffset, resetTuning } from './audio.js';
 import { fingeringSvg, staffSvg, h } from './checkpoints.js';
 import { mascot } from './art.js';
 
@@ -325,8 +325,23 @@ function showTuner() {
         <button class="btn primary" data-act="mic">🎤 Mikrofonu aç</button>
       </div>
       <p class="hint muted">${instrument().tunerHint}</p>
+      <p class="hint tuning-learned"></p>
     </section>`);
   view.appendChild(page);
+  // Egzersizlerde doğru çalınan notalardan öğrenilen genel akort
+  const learned = page.querySelector('.tuning-learned');
+  const showLearned = () => {
+    const c = Math.round(tuningOffset() * 100);
+    learned.innerHTML =
+      Math.abs(c) < 10
+        ? `Uygulamanın öğrendiği akort: ${instrument().name.toLocaleLowerCase('tr')} akordu yerinde görünüyor.`
+        : `Uygulamanın öğrendiği akort: ${instrument().name.toLocaleLowerCase('tr')} genel olarak <b>${c > 0 ? '+' : ''}${c} sent ${c > 0 ? 'tiz' : 'pes'}</b> çalıyor; alıştırmalar bunu hesaba katıyor. <button class="link" data-act="reset-tuning">Sıfırla</button>`;
+    learned.querySelector('[data-act=reset-tuning]')?.addEventListener('click', () => {
+      resetTuning();
+      showLearned();
+    });
+  };
+  showLearned();
   const $ = (s) => page.querySelector(s);
   const listener = new PitchListener(
     (f) => {

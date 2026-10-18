@@ -5,9 +5,9 @@
 import { noteSymbol } from './art.js';
 import { longName, midiOf, shortName, titleName, staffStep, parseNote } from './data/notes.js';
 import { prepareExercise } from './data/worksheet.js';
-import { PitchListener, playNote, playChime, playClick, matchesTarget, HOLD_TOLERANCE, TOLERANCE, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
+import { PitchListener, playNote, playChime, playClick, matchesTarget, HOLD_TOLERANCE, TOLERANCE, learnTuning, tuningOffset, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, fingeringToggle, h, heardName, wrongNoteText } from './checkpoints.js';
-import { commandNotes, goNext, navButtons, takeHandoff } from './drill.js';
+import { commandNotes, goNext, navButtons, takeHandoff, tuningNote } from './drill.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
 import { OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
@@ -637,6 +637,7 @@ export class SheetGame {
     const dip = this.holdStart && rms < this.peakRms * (this.reached ? 0.6 : 0.35);
     if (this.isTarget(s, target, !!this.holdStart) && !dip) {
       this.wrongSince = 0;
+      if (typeof s === 'object') learnTuning(s, target);
       if (!this.holdStart) {
         this.holdStart = now;
         this.peakRms = rms;
@@ -801,6 +802,7 @@ export class SheetGame {
         const ev = this.events[cur];
         if (!ev.rest) {
           if (this.isTarget(s, midiOf(ev.note), hitPrev)) {
+            if (typeof s === 'object') learnTuning(s, midiOf(ev.note));
             correct[cur] = (correct[cur] || 0) + dt;
             hitPrev = true;
           } else {
@@ -872,6 +874,7 @@ export class SheetGame {
       <p>${n} notanın ${ok + short} tanesinde nota doğru (%${pitchPct}), ${ok} tanesinde süre de tam. ${
         ok === n ? 'Kusursuz!' : 'Renkli notalar satırlarda duruyor: sarı süre eksik, kırmızı yanlış ya da kaçırılan nota.'
       }</p>
+      ${tuningNote()}
       ${navButtons(this.nav, 'egzersiz')}
       ${full ? '' : '<p><button class="btn" data-act="all">▶ Bütün egzersizi baştan sona çal</button></p>'}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start(this.onlyRow));
