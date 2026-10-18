@@ -50,6 +50,11 @@ Mikrofon, hedef notaya ±70 sent yakınlığı doğru sayar; yeni başlayanları
 
 ### Egzersiz Yap (yalnızca flüt)
 
+Toplam 45 egzersiz: kağıttaki egzersizlerin ardından her ünitede aynı notalar ve ritimlerle ek alıştırmalar
+(basamaklar, atlamalar, 3/4 vals, sus ile başlayan ölçüler, ölçüyü aşan bağlar, Si/Si bemol ayrımı, Fa majör dizisi) ve
+telif süresi dolmuş geleneksel ezgiler var: Sıcak Çörekler, Ay Işığında (Au clair de la lune), Küçük Yıldız, Küçük Hans
+(Hänschen klein), Zil Sesleri (Jingle Bells nakaratı) ve Neşeye Övgü (Beethoven).
+
 **Parçalar** bölümünde "Bana Bir Masal Anlat Baba" (Söz: Yavuz Turgul – Cengiz Onural, Müzik: Cengiz Onural) dört notaya
 (La, Si, İnce Do, İnce Re) uyarlanmış kolay düzenlemesiyle bulunur: sekizlik, noktalı dörtlük ve sekizlik sus içerir.
 
