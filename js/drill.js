@@ -5,7 +5,7 @@
 // Girdi: mikrofon ya da ekrandaki tuşa basılı tutma.
 import { noteSymbol } from './art.js';
 import { longName, midiOf, shortName, titleName, staffStep, parseNote } from './data/notes.js';
-import { PitchListener, playNote, playChime, playClick, matchesTarget, HOLD_TOLERANCE, TOLERANCE, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
+import { PitchListener, playNote, playChime, playClick, matchesTarget, HOLD_TOLERANCE, TOLERANCE, learnTuning, tuningOffset, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { fingeringSvg, fingeringToggle, heardName, staffSvg, h, wrongNoteText } from './checkpoints.js';
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
@@ -168,6 +168,14 @@ export function takeHandoff(game) {
   game.mode = h.mode;
   game.updateButtons();
   game.start();
+}
+
+/** Sonuç kartı için: öğrenilen akort belirginse kısa bir not */
+export function tuningNote() {
+  const c = Math.round(tuningOffset() * 100);
+  if (Math.abs(c) < 25) return '';
+  const adv = c > 0 ? instrument().sharpAdvice : instrument().flatAdvice;
+  return `<p class="muted tuning-note">🎯 ${instrument().name} genel olarak ${c > 0 ? '+' : ''}${c} sent ${c > 0 ? 'tiz' : 'pes'} çalıyor; değerlendirme bunu hesaba katıyor. Akort için ${typeof adv === 'function' ? 'akort vidalarını kontrol et' : adv}.</p>`;
 }
 
 /** Sonuç kartının alt düğmeleri: tekrar, önceki ve sonraki */
@@ -497,6 +505,7 @@ export class DrillGame {
     const dip = this.holdStart && rms < this.peakRms * (this.reached ? 0.6 : 0.35);
     if (this.isTarget(s, target, !!this.holdStart) && !dip) {
       this.wrongSince = 0;
+      if (typeof s === 'object') learnTuning(s, target);
       if (!this.holdStart) {
         this.holdStart = now;
         this.peakRms = rms;
@@ -685,6 +694,7 @@ export class DrillGame {
       }
       if (cur >= 0) {
         if (this.isTarget(s, midiOf(this.notes[cur].note), hitPrev)) {
+          if (typeof s === 'object') learnTuning(s, midiOf(this.notes[cur].note));
           correct[cur] += dt;
           hitPrev = true;
         } else {
@@ -735,6 +745,7 @@ export class DrillGame {
         ${this.mode === 'tempo' ? `<div class="miss"><span class="big">${miss}</span><small>○ kaçırılan</small></div>` : ''}
       </div>
       <p>${ratio === 1 ? 'Kusursuz! Hem notalar hem süreler doğru.' : 'Renkli notalar portede duruyor: sarı süre eksik, kırmızı yanlış ya da kaçırılan nota.'}</p>
+      ${tuningNote()}
       ${navButtons(this.nav, 'antrenman')}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start());
     commandNotes(this, res, { restart: () => this.start(), next: goNext(this) });

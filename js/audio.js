@@ -357,7 +357,75 @@ export function freqToNote(freq) {
 export function offsetFromTarget(frame, target, { octaveOk = false } = {}) {
   let d = (frame.midiFloat ?? frame.midi) - target;
   if (octaveOk) d -= 12 * Math.round(d / 12);
-  return d;
+  // Mikrofon karelerinde öğrencinin enstrüman akordu düşülür (dokunmada midiFloat yok)
+  return frame.midiFloat != null ? d - tuningOffset() : d;
+}
+
+// ---------------------------------------------------------------------------
+// Enstrüman akordunu öğrenme. Pek çok flüt (baş kısmı içeride) ya da keman genel olarak
+// 30–50 sent tiz/pes çalar; ince Do gibi doğası gereği tiz notalar bu yüzden komşu notaya
+// kayar. Doğru kabul edilen notaların ortak sapması öğrenilir ve notalar ona göre değerlendirilir.
+// Tek bir notanın sapması akort sayılmaz: en az üç farklı notanın ortancası alınır, ±40 sentle sınırlanır.
+const tuning = { key: null, offset: 0, notes: new Map(), count: 0 };
+const MAX_TUNING = 0.4;
+const median = (a) => {
+  const b = [...a].sort((x, y) => x - y);
+  return b.length % 2 ? b[b.length >> 1] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2;
+};
+function tuningState() {
+  const key = `${instrument().storageKey}.tuning`;
+  if (tuning.key !== key) {
+    tuning.key = key;
+    tuning.notes = new Map();
+    tuning.count = 0;
+    try {
+      tuning.offset = Math.max(-MAX_TUNING, Math.min(MAX_TUNING, Number(JSON.parse(localStorage.getItem(key))?.offset) || 0));
+    } catch {
+      tuning.offset = 0;
+    }
+  }
+  return tuning;
+}
+
+/** Öğrenilen akort (yarım ses cinsinden; +0,35 = 35 sent tiz) */
+export function tuningOffset() {
+  return tuningState().offset;
+}
+
+/** Doğru kabul edilen bir karenin sapmasını akort öğrenmeye ekler */
+export function learnTuning(frame, target) {
+  if (frame?.midiFloat == null || target == null) return;
+  const t = tuningState();
+  let d = frame.midiFloat - target;
+  d -= 12 * Math.round(d / 12);
+  if (Math.abs(d - t.offset) > HOLD_TOLERANCE) return;
+  const arr = t.notes.get(target) || [];
+  arr.push(d);
+  if (arr.length > 120) arr.shift();
+  t.notes.set(target, arr);
+  if (++t.count % 30) return;
+  const meds = [...t.notes.values()].filter((a) => a.length >= 20).map(median);
+  if (meds.length < 3) return;
+  const next = Math.max(-MAX_TUNING, Math.min(MAX_TUNING, median(meds)));
+  t.offset = Math.round((t.offset * 0.5 + next * 0.5) * 100) / 100; // yavaş uyum
+  try {
+    localStorage.setItem(t.key, JSON.stringify({ offset: t.offset }));
+  } catch {
+    /* saklanamazsa yalnızca bu oturumda geçerli */
+  }
+}
+
+/** Öğrenilen akordu sıfırla */
+export function resetTuning() {
+  const t = tuningState();
+  t.offset = 0;
+  t.notes = new Map();
+  t.count = 0;
+  try {
+    localStorage.removeItem(t.key);
+  } catch {
+    /* yok say */
+  }
 }
 
 /**
@@ -546,6 +614,7 @@ export class NoteMatcher {
     // Yeni tutma yalnızca ses yükselirken başlar (son 10 ms, son 43 ms'nin yarısından güçlü olmalı)
     const loud = this.since ? level > this.peak * 0.35 : level > (frame.rms || 0) * 0.5;
     if (loud && matchesTarget(frame, this.target, { ...opts, tolerance: this.since ? HOLD_TOLERANCE : TOLERANCE })) {
+      learnTuning(frame, this.target);
       this.lastWrong = null;
       this.lastHit = now;
       if (!this.since) {
