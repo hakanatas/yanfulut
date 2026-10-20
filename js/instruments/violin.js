@@ -7,6 +7,7 @@ import { fingerboard } from '../violin/art.js';
 import { longName, setRegisterNaming } from '../data/notes.js';
 import { setPitchRange, setTimbre } from '../audio.js';
 import { TTS } from '../violin/tts/manifest.js';
+import { UNITS, SOURCE } from '../violin/worksheet.js';
 
 export default {
   id: 'violin',
@@ -30,6 +31,18 @@ export default {
     violinFingering(note).finger === 0
       ? 'tel biraz gevşek: kuyruktaki ince akort vidasını hafifçe sık'
       : 'parmağını eşiğe doğru çok az ileri kaydır',
+  // Akort aletinde boş tel düğmeleri; otomatik modda yakın çalınan boş tele göre akort edilir
+  tunerRefs: [
+    { note: 'G3', label: 'Sol teli', auto: true },
+    { note: 'D4', label: 'Re teli', auto: true },
+    { note: 'A4', label: 'La teli', auto: true },
+    { note: 'E5', label: 'Mi teli', auto: true },
+  ],
+  restrikeHint: 'yayı yeniden başlat (yay yönünü değiştir)', // aynı nota art arda gelince
+  worksheetIntro: 'Kemana özel egzersizler satır satır: boş tellerden başlayıp dört telin parmaklarına.',
+  pictureName: 'parmak yeri şemasını',
+  worksheets: UNITS,
+  worksheetSource: SOURCE,
   other: { name: 'Yan Flüt', href: '../', live: 'https://hakanatas.github.io/yanfulut/' },
   lessons: LESSONS,
   songs: SONGS,

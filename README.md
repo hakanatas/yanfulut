@@ -48,7 +48,15 @@ Mikrofon, hedef notaya ±70 sent yakınlığı doğru sayar; yeni başlayanları
 
 Üç oyun modu var: **Flütle çal** (mikrofon), **Dokunarak çal** (ekrandaki nota düğmeleri, flütü yanında olmayanlar için) ve **Dinle ve izle** (ezgiyi çalıp resmi kendisi çizer). Hata sayısına göre 1 ile 3 arasında yıldız kazanılır.
 
-### Egzersiz Yap (yalnızca flüt)
+### Egzersiz Yap (flüt ve keman)
+
+**Keman** için 5 ünitede 32 egzersiz (`js/violin/worksheet.js`): boş teller La ve Re (aşağı/yukarı yay, dörtlük-ikilik-birlik),
+Sol ve Mi telleri (sus, korona, 3/4 vals), La telinde parmaklar (Si, Do♯, Re; noktalı ikilik), Re telinde parmaklar (Mi, Fa♯, Sol;
+bağ, 2/4, tam ölçü sus) ve Mi telinde parmaklar (Fa♯, Sol♯, La; sekizlik, noktalı dörtlük). Ezgiler telif süresi dolmuş geleneksel
+ezgiler: Saint Margarita Ninnisi, Küçük Hans, Ay Işığında, Zil Sesleri, Londra Köprüsü, Küçük Ördekler. Kemanda büyük flüt resmi
+yerine parmak yeri şeması görünür; aynı nota tekrarında "yayı yeniden başlat" denir.
+
+**Flüt**:
 
 Toplam 45 egzersiz: kağıttaki egzersizlerin ardından her ünitede aynı notalar ve ritimlerle ek alıştırmalar
 (basamaklar, atlamalar, 3/4 vals, sus ile başlayan ölçüler, ölçüyü aşan bağlar, Si/Si bemol ayrımı, Fa majör dizisi) ve
@@ -71,6 +79,8 @@ Resim yok; hedef doğru notayı **doğru süre** boyunca çalmak. Parça gerçek
 - **Tempolu:** Dört vuruşluk metronom sayımından sonra okuma çizgisi **ilk notanı duyana kadar bekler**, sonra ilerler; her nota hem nota hem süre için puanlanır (yeşil: tam, sarı: süre eksik, kırmızı: yanlış ya da kaçtı).
 - **Okuma çizgisi öğrenciyi izler** (`TempoFollower`): nota geçişinde sıradaki nota en çok 0,32 sn erken başlarsa çizgi ona uyar, geç kalırsa o kadar bekler; böylece insan temposundaki küçük kaymalar notadan notaya birikmez.
 - **Süre affedilmez** (`js/scoring.js`): nota ancak yazılı süresinin neredeyse tamamı çalınırsa "tam süre" sayılır; yalnızca dil vurma boşluğu kadar (en çok 0,17 sn ya da sürenin %12'si) eksik kalabilir. Aynı nota art arda geliyorsa her biri yeniden başlatılmalı (dil vurma); tek uzun ses olarak çalınırsa sayılmaz. Kendi hızımda modunda da aynı pay geçerli; sıradaki notaya süre dolmadan geçilirse nota "yanlış" değil "süre eksik" sayılır ve devam edilir (aynı nota tekrarında ise nota yeniden istenir).
+- **Tempo elle ayarlanır:** egzersiz ve antrenman sayfalarında **− / +** düğmeleri ya da kutuya yazarak 30–200 vuruş/dk; seçilen tempo o alıştırma için hatırlanır, "Yazılı tempo" ile geri dönülür. Yazılı tempodan %10'dan fazla yavaş çalınınca en çok 2 yıldız verilir ve sonuçta not düşülür.
+- **Metronom sesi:** Tempolu modda öğrenci başlayınca her vuruşta (ölçü başı vurgulu) tahta tıkırtısı çalar; ses okuma çizgisiyle birlikte zamanlanır (`js/metronome.js`, Web Audio). Tıkırtı perdesiz gürültü olduğu için mikrofondaki nota algısını şaşırtmaz. "Metronom sesi açık/kapalı" düğmesiyle kapatılabilir.
 - **Elini sürmeden:** mikrofonla çalarken alıştırma bitince mikrofon açık kalır. Flütte **Si** (kemanda **La**) yaklaşık 1 sn uzun çalınırsa alıştırma baştan başlar; flütte **La** (kemanda **Re**) uzun çalınırsa sonraki alıştırmaya geçilir ve o da aynı modla kendiliğinden başlar. Bitişte hâlâ süren ses sayılmaz; önce bir an susmak gerekir.
 - **Akort öğrenme:** doğru kabul edilen notalardan enstrümanın genel akordu öğrenilir ve notalar buna göre değerlendirilir; tiz akortlu bir flütte ince Do "Do diyez" sanılmaz. Yanlış öğrenme notaları bozmasın diye yalnızca hedefe ±60 sent yakın sesler öğrenilir, en az üç farklı notanın ortancası alınır, kaydırma en çok ±25 senttir ve değer yalnızca o sekmede saklanır (ortak bilgisayarda bir öğrencinin flütü diğerini etkilemez). Akort ne olursa olsun komşu notanın kendisi (100 sent) hiçbir zaman kabul edilmez. Akort sayfasında öğrenilen değer görünür ve sıfırlanabilir.
 - **Yanlış notada yol gösterme:** ses iki nota arasında kaldıysa kaç sent tiz/pes olduğu ve akort önerisi; tam başka bir notaysa hedef için hangi parmağın kapatılıp kaldırılacağı söylenir (ör. "İnce Do için sol işaret parmağını kapat"). Duyulan notanın yanında belirgin sapma sent olarak yazılır.
@@ -85,7 +95,8 @@ Her ders öğrettiği notaları `teaches` alanında listeler. `node tools/check-
 
 ### 3. Yardımcı araçlar
 - **Parmak tablosu:** Pes Do'dan tiz Do'ya kadar her nota için flüt üzerinde parmak pozisyonu, porte görünümü ve örnek ses.
-- **Akort:** Mikrofonla çalınan notayı ve kaç sent pes/tiz olduğunu gösterir.
+- **Akort:** Mikrofonla çalınan notayı ve kaç sent pes/tiz olduğunu iğneyle gösterir (titreşimde zıplamasın diye son karelerin ortancası). Hedef düğmeleri referans sesi çalar ve iğneyi o notaya göre ayarlar: kemanda Sol, Re, La, Mi telleri (otomatik modda yakın çalınan boş tel kendiliğinden hedef olur), flütte La (440 Hz) ve Si bemol. Ne yapılacağı yazılır: kemanda "ince akort vidasını hafifçe gevşet/sık", flütte "baş kısmını çok az dışarı çek/içeri it"; ±5 sent içinde sabit kalınca "Akortlu ✓". Hedeften yarım ses kadar uzak ses başka bir nota olarak bildirilir.
+- **Metronom:** 30–200 vuruş/dk, −5/−1/+1/+5 düğmeleri ve kaydırıcı, 2/4–3/4–4/4 ya da vurgusuz, sekizlik ara vuruş, "Vuruşa dokun" ile tempo bulma ve klavye kısayolları (boşluk, oklar). Ayarlar hatırlanır.
 
 İlerleme tarayıcıda (localStorage) saklanır. Mikrofon sesi yalnızca tarayıcıda işlenir, hiçbir yere gönderilmez.
 
@@ -120,7 +131,8 @@ js/dots.js            Nota Noktaları oyunu
 js/drill.js           Antrenman: nota + süre çalışması (kendi hızımda / tempolu)
 js/data/drills.js     Flüt antrenmanları (keman: js/violin/drills.js)
 js/scoring.js         Ortak puanlama: tam süre toleransı, dil vurma (nota başlangıcı) algılama
-js/sheet.js           Egzersiz Yap: çalışma kağıdı egzersizleri satır satır (sus, korona, bağ, 2/4-3/4-4/4)
+js/sheet.js           Egzersiz Yap: egzersizler satır satır (sus, korona, bağ, 2/4-3/4-4/4)
+js/metronome.js       Metronom: zamanlanmış vuruşlar, çalarken tıkırtı, tempo düğmeleri
 js/data/worksheet.js  Flüt çalışma kağıdı: Ünite 1–5 egzersizleri ve yeni notalar
 js/data/shapes.js     Kısa şarkıların resimleri
 tools/check-course.mjs  Ders yolu denetimi

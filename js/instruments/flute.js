@@ -38,6 +38,15 @@ export default {
   tunerHint: 'Akort için flütünün baş kısmını gövdeden biraz dışarı çekersen ses pesleşir, içeri itersen tizleşir.',
   sharpAdvice: 'havayı biraz yumuşat ya da flütün baş kısmını hafifçe dışarı çek',
   flatAdvice: 'havayı biraz hızlandır ve dudak açıklığını küçült',
+  // Akort aletinde: enstrümanın kendisini akort etmek için
+  tuneAdvice: { sharp: 'baş kısmını gövdeden çok az dışarı çek', flat: 'baş kısmını gövdeye çok az içeri it' },
+  tunerRefs: [
+    { note: 'A4', label: 'La (440 Hz)' },
+    { note: 'Bb4', label: 'Si bemol' },
+  ],
+  restrikeHint: 'dil vur (tu-tu)', // aynı nota art arda gelince yeniden başlatma
+  worksheetIntro: 'Çalışma kağıdındaki egzersizler satır satır.',
+  pictureName: 'flüt resmini',
   other: { name: 'Keman', href: 'keman/', live: 'https://hakanatas.github.io/yanfulut/keman/' },
   lessons: LESSONS,
   songs: SONGS,

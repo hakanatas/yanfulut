@@ -10,6 +10,7 @@ import { fingeringSvg, fingeringToggle, heardName, staffSvg, h, wrongNoteText } 
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
 import { CommandNote, OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
+import { ClickTrack, beatTicks, clicksOn, saveTempo, savedTempo, starsAtTempo, tempoControl, tempoNote } from './metronome.js';
 
 
 // Porte ölçüleri
@@ -194,7 +195,10 @@ export class DrillGame {
     this.drill = drill;
     this.nav = nav;
     this.notes = drill.notes;
-    this.beatMs = 60000 / drill.bpm;
+    // Tempo elle değiştirilebilir; seçilen tempo bu antrenman için hatırlanır
+    this.written = drill.bpm;
+    this.bpm = savedTempo(`drill-${drill.id}`) ?? drill.bpm;
+    this.beatMs = 60000 / this.bpm;
     this.input = 'mic';
     this.mode = 'hold';
     this.render();
@@ -215,7 +219,7 @@ export class DrillGame {
           <div>
             <div class="cp-tag">Antrenman</div>
             <h2>${this.drill.title}</h2>
-            <p class="muted">${this.drill.focus} · ${this.drill.bpm} vuruş/dakika</p>
+            <p class="muted">${this.drill.focus} · yazılı tempo ${this.drill.bpm} vuruş/dakika</p>
           </div>
           <div class="stars" aria-label="Yıldızlar"></div>
         </div>
@@ -258,6 +262,8 @@ export class DrillGame {
     this.$ = $;
     this.noteEls = [...this.el.querySelectorAll('.drill-note')];
     $('.drill-options').appendChild(fingeringToggle(() => this.showTarget(this.index || 0)));
+    this.tempo = tempoControl({ bpm: this.bpm, written: this.written, onChange: (v) => this.setBpm(v) });
+    $('.drill-options').appendChild(this.tempo.el);
 
     this.el.querySelector('.drill-options').addEventListener('click', (e) => {
       const b = e.target.closest('button');
@@ -290,6 +296,14 @@ export class DrillGame {
     for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) pad.addEventListener(t, release);
     this.releasePad = release;
     this.updateButtons();
+  }
+
+  /** Tempo elle değişti: süreler yeni tempoya göre, antrenman baştan */
+  setBpm(bpm) {
+    this.bpm = bpm;
+    this.beatMs = 60000 / bpm;
+    saveTempo(`drill-${this.drill.id}`, bpm, this.written);
+    this.reset();
   }
 
   updateButtons() {
@@ -622,6 +636,8 @@ export class DrillGame {
     const onsets = [];
     const detector = new OnsetDetector();
     const follower = new TempoFollower(starts, this.notes.map((n) => ({ rest: false, midi: midiOf(n.note) })));
+    // Metronom: öğrenci başlayınca okuma çizgisiyle birlikte her vuruşta tıklar
+    const clicks = clicksOn() ? new ClickTrack(beatTicks(this.notes.map((n, i) => ({ at: starts[i], beats: n.beats })), { beatMs: this.beatMs, time: 4 })) : null;
     const playhead = this.$('.playhead');
     playhead.removeAttribute('hidden');
     playhead.setAttribute('x1', X0);
@@ -652,7 +668,7 @@ export class DrillGame {
         `Önceki nota (${shortName(n.note)}): ` +
         {
           ok: '✓ doğru nota, tam süre',
-          short: rearticulated ? `süre eksik! ${valueOf(n.beats)[2]} çalmalıydın, yaklaşık ${got} vuruş çaldın.` : 'aynı notayı yeniden başlatmadın: dil vur (tu-tu).',
+          short: rearticulated ? `süre eksik! ${valueOf(n.beats)[2]} çalmalıydın, yaklaşık ${got} vuruş çaldın.` : `aynı notayı yeniden başlatmadın: ${instrument().restrikeHint}.`,
           wrong: wrongFrame[i] ? wrongNoteText(wrongFrame[i], n.note) : `yanlış nota, hedef ${longName(n.note)} idi.`,
           miss: 'kaçırdın.',
         }[kind];
@@ -678,6 +694,7 @@ export class DrillGame {
       const rms = this.input === 'mic' ? (this.frame?.rmsFast ?? this.frame?.rms) || 0 : s != null ? 1 : 0;
       const onset = detector.update(s != null, rms);
       const heard = follower.update(now - t0 - latency, cur, (m) => this.isTarget(s, m), onset);
+      clicks?.update(heard);
       if (onset) onsets.push(heard - (this.input === 'mic' ? 30 : 0));
       playhead.setAttribute('x1', X0 + (heard / this.beatMs) * BEAT_W);
       playhead.setAttribute('x2', X0 + (heard / this.beatMs) * BEAT_W);
@@ -728,7 +745,7 @@ export class DrillGame {
     const miss = count('miss');
     this.stop({ keepMic: true });
     const ratio = ok / n;
-    const stars = ratio >= 0.9 ? 3 : ratio >= 0.7 ? 2 : 1;
+    const stars = starsAtTempo(ratio >= 0.9 ? 3 : ratio >= 0.7 ? 2 : 1, this.bpm, this.written);
     progress.completeSong(`drill-${this.drill.id}`, stars);
     this.renderStars(progress.songStars(`drill-${this.drill.id}`));
     playChime();
@@ -745,6 +762,7 @@ export class DrillGame {
         ${this.mode === 'tempo' ? `<div class="miss"><span class="big">${miss}</span><small>○ kaçırılan</small></div>` : ''}
       </div>
       <p>${ratio === 1 ? 'Kusursuz! Hem notalar hem süreler doğru.' : 'Renkli notalar portede duruyor: sarı süre eksik, kırmızı yanlış ya da kaçırılan nota.'}</p>
+      ${tempoNote(this.bpm, this.written)}
       ${tuningNote()}
       ${navButtons(this.nav, 'antrenman')}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start());
