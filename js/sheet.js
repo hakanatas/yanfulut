@@ -1,4 +1,4 @@
-// Egzersiz Yap: çalışma kağıdındaki egzersizler satır satır, büyük nota ve büyük flüt resmiyle.
+// Egzersiz Yap: egzersizler satır satır, büyük nota ve büyük parmak resmiyle (flüt ya da keman klavyesi).
 // Nokta birleştirme yok; her nota hem doğru yükseklik hem doğru süre için puanlanır.
 // Modlar ve girdiler Antrenman ile aynı: "Kendi hızımda" / "Tempolu", mikrofon ya da basılı tutulan tuş.
 // Sus işaretleri sayılır ama puanlanmaz; korona (𝄐) notası yazılanın iki katı tutulur; bağlı notalar tek nota sayılır.
@@ -11,6 +11,7 @@ import { commandNotes, goNext, navButtons, takeHandoff, tuningNote } from './dri
 import { instrument } from './instrument.js';
 import { progress } from './progress.js';
 import { OnsetDetector, TempoFollower, beatsPlayed, holdNeedMs, judgeNote, latencyOf, valueOf } from './scoring.js';
+import { ClickTrack, beatTicks, clicksOn, saveTempo, savedTempo, starsAtTempo, tempoControl, tempoNote } from './metronome.js';
 
 const REST_NAME = { 4: 'birlik sus', 3: 'noktalı ikilik sus', 2: 'ikilik sus', 1: 'dörtlük sus', 0.5: 'sekizlik sus' };
 const beatsText = (b) => `${String(b).replace('.', ',')} vuruş`;
@@ -180,7 +181,10 @@ export class SheetGame {
     this.root = root;
     this.nav = nav;
     this.ex = prepareExercise(exercise);
-    this.beatMs = 60000 / exercise.bpm;
+    // Tempo elle değiştirilebilir; seçilen tempo bu alıştırma için hatırlanır
+    this.written = exercise.bpm;
+    this.bpm = savedTempo(`ws-${exercise.id}`) ?? exercise.bpm;
+    this.beatMs = 60000 / this.bpm;
     this.onFinish = onFinish;
     this.input = 'mic';
     this.mode = 'tempo';
@@ -199,6 +203,7 @@ export class SheetGame {
     this.items = [];
     this.ex.parsed.forEach((row, r) => row.forEach((it) => this.items.push({ ...it, row: r })));
     this.events = [];
+    let pos = this.ex.pickup ? this.ex.time - this.ex.pickup : 0; // ölçü içindeki vuruş konumu (metronom vurguları için)
     for (let i = 0; i < this.items.length; i++) {
       const it = this.items[i];
       const prev = this.items[i - 1];
@@ -209,9 +214,11 @@ export class SheetGame {
         ev.beats += it.beats;
         ev.ms += ms;
         ev.fermata ||= it.fermata;
+        pos += it.beats;
         continue;
       }
-      this.events.push({ rest: it.rest, note: it.note, beats: it.beats, fermata: it.fermata, ms, parts: [i], row: it.row });
+      this.events.push({ rest: it.rest, note: it.note, beats: it.beats, fermata: it.fermata, ms, parts: [i], row: it.row, pos });
+      pos += it.beats;
     }
     this.scored = this.events.map((e, i) => (e.rest ? -1 : i)).filter((i) => i >= 0);
   }
@@ -226,7 +233,7 @@ export class SheetGame {
           <div>
             <div class="cp-tag">Egzersiz Yap</div>
             <h2>${ex.title}</h2>
-            <p class="muted">${ex.focus} · ${ex.time}/4 ölçü · ${ex.bpm} vuruş/dakika · ${this.scored.length} nota</p>
+            <p class="muted">${ex.focus} · ${ex.time}/4 ölçü · yazılı tempo ${ex.bpm} vuruş/dakika · ${this.scored.length} nota</p>
             ${ex.credit ? `<p class="muted small-print ws-credit">${ex.credit}</p>` : ''}
           </div>
           <div class="stars" aria-label="Yıldızlar"></div>
@@ -298,6 +305,8 @@ export class SheetGame {
     this.itemEls = [...this.el.querySelectorAll('.ws-item')];
 
     $('.drill-options').appendChild(fingeringToggle(() => this.showTarget(this.cur ?? this.range[0])));
+    this.tempo = tempoControl({ bpm: this.bpm, written: this.written, onChange: (v) => this.setBpm(v) });
+    $('.drill-options').appendChild(this.tempo.el);
     $('.drill-options').addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b) return;
@@ -352,6 +361,15 @@ export class SheetGame {
     this.mode = mode;
     this.reset();
     this.updateButtons();
+  }
+
+  /** Tempo elle değişti: süreler yeniden hesaplanır, alıştırma baştan hazırlanır */
+  setBpm(bpm) {
+    this.bpm = bpm;
+    this.beatMs = 60000 / bpm;
+    saveTempo(`ws-${this.ex.id}`, bpm, this.written);
+    this.build();
+    this.reset();
   }
 
   /** Satır aralığındaki olaylar: [ilk, son) */
@@ -430,7 +448,7 @@ export class SheetGame {
     }
   }
 
-  /** Büyük hedef: nota adı, süre, vuruş noktaları, büyük porte ve flüt resmi */
+  /** Büyük hedef: nota adı, süre, vuruş noktaları, büyük porte ve parmak resmi */
   showTarget(i) {
     const ev = this.events[i];
     if (!ev) return;
@@ -731,6 +749,15 @@ export class SheetGame {
     const onsets = []; // nota başlangıçları (okuma zamanı, ms)
     const detector = new OnsetDetector();
     const follower = new TempoFollower(starts, this.events.map((e) => ({ rest: e.rest, midi: e.rest ? null : midiOf(e.note) })));
+    // Metronom: öğrenci başlayınca okuma çizgisiyle birlikte her vuruşta tıklar (ölçü başı vurgulu)
+    const clicks = clicksOn()
+      ? new ClickTrack(
+          beatTicks(
+            this.events.slice(a, b).map((e, k) => ({ at: starts[a + k], beats: e.beats, stretch: e.fermata ? FERMATA : 1 })),
+            { beatMs: this.beatMs, time: this.ex.time, startPos: this.events[a].pos },
+          ),
+        )
+      : null;
     const latency = latencyOf(this.input);
     const firstNote = this.scored.find((i) => i >= a && i < b) ?? a;
     let t0 = null; // ilk ses duyulunca kurulur: okuma çizgisi öğrenciyi bekler
@@ -760,7 +787,7 @@ export class SheetGame {
         `Önceki nota (${shortName(ev.note)}): ` +
         {
           ok: '✓ doğru nota, tam süre',
-          short: rearticulated ? `süre eksik! ${want} çalmalıydın, yaklaşık ${got} çaldın.` : 'aynı notayı yeniden başlatmadın: dil vur (tu-tu).',
+          short: rearticulated ? `süre eksik! ${want} çalmalıydın, yaklaşık ${got} çaldın.` : `aynı notayı yeniden başlatmadın: ${instrument().restrikeHint}.`,
           wrong: wrongFrame[i] ? wrongNoteText(wrongFrame[i], ev.note) : `yanlış nota, hedef ${longName(ev.note)} idi.`,
           miss: 'kaçırdın.',
         }[kind];
@@ -787,6 +814,7 @@ export class SheetGame {
       const rms = this.input === 'mic' ? (this.frame?.rmsFast ?? this.frame?.rms) || 0 : s != null ? 1 : 0;
       const onset = detector.update(s != null, rms);
       const heard = follower.update(now - t0 - latency, cur, (m) => this.isTarget(s, m), onset);
+      clicks?.update(heard);
       if (onset) onsets.push(heard - (this.input === 'mic' ? 30 : 0));
       let i = cur < 0 ? a - 1 : cur;
       while (i + 1 < b && heard >= starts[i + 1]) i++;
@@ -851,7 +879,7 @@ export class SheetGame {
       r.querySelector('.ws-row-score').textContent = `${rOk}/${ri.length} doğru`;
     });
     const full = this.onlyRow == null;
-    const stars = pct >= 90 ? 3 : pct >= 70 ? 2 : 1;
+    const stars = starsAtTempo(pct >= 90 ? 3 : pct >= 70 ? 2 : 1, this.bpm, this.written);
     if (full) {
       progress.completeSong(`ws-${this.ex.id}`, stars);
       this.renderStars(progress.songStars(`ws-${this.ex.id}`));
@@ -874,6 +902,7 @@ export class SheetGame {
       <p>${n} notanın ${ok + short} tanesinde nota doğru (%${pitchPct}), ${ok} tanesinde süre de tam. ${
         ok === n ? 'Kusursuz!' : 'Renkli notalar satırlarda duruyor: sarı süre eksik, kırmızı yanlış ya da kaçırılan nota.'
       }</p>
+      ${tempoNote(this.bpm, this.written)}
       ${tuningNote()}
       ${navButtons(this.nav, 'egzersiz')}
       ${full ? '' : '<p><button class="btn" data-act="all">▶ Bütün egzersizi baştan sona çal</button></p>'}`;

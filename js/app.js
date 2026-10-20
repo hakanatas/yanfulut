@@ -1,4 +1,4 @@
-// Uygulama: sayfa yönlendirme, ders haritası, parmak tablosu ve akort aleti.
+// Uygulama: sayfa yönlendirme, ders haritası, parmak tablosu, akort aleti ve metronom.
 // Enstrümana özgü içerik js/instruments/<id>.js paketinden gelir; sayfa boot(id) ile başlar.
 import { longName, shortName, titleName, midiOf } from './data/notes.js';
 import { instrument, setInstrument } from './instrument.js';
@@ -10,6 +10,7 @@ import { progress } from './progress.js';
 import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE, tuningOffset, resetTuning } from './audio.js';
 import { fingeringSvg, staffSvg, h } from './checkpoints.js';
 import { mascot } from './art.js';
+import { Metronome, BPM_MAX, BPM_MIN, clampBpm, metronomeSettings, saveMetronomeSettings, tempoName } from './metronome.js';
 
 const view = document.getElementById('view');
 let active = null; // açık oynatıcı / oyun / dinleyici (sayfa değişince kapatılır)
@@ -43,6 +44,7 @@ function route() {
   }
   if (page === 'parmak') return showChart(id);
   if (page === 'akort') return showTuner();
+  if (page === 'metronom') return showMetronome();
   showHome();
 }
 
@@ -222,9 +224,10 @@ function showWorksheetList() {
   const page = h(`
     <section class="drill-list-page ws-list-page">
       <div class="page-head"><h2>Egzersiz Yap</h2></div>
-      <p class="muted">Çalışma kağıdındaki egzersizler satır satır. Burada nokta birleştirme yok: büyük notayı ve flüt resmini izle,
+      <p class="muted">${instrument().worksheetIntro} Burada nokta birleştirme yok: büyük notayı ve ${instrument().pictureName} izle,
         her notayı <b>doğru süre</b> boyunca çal. Sonunda kaç notayı doğru, kaçını yanlış çaldığını görürsün.
-        Her ünite yeni notalarını önce tanıtır; egzersizler yalnızca o ana kadar tanıtılan notaları kullanır.</p>
+        Her ünite yeni notalarını önce tanıtır; egzersizler yalnızca o ana kadar tanıtılan notaları kullanır.
+        Tempoyu egzersiz sayfasında <b>−/+</b> ile kendine göre ayarlayabilirsin.</p>
     </section>`);
   for (const u of units) {
     const sec = h(`
@@ -311,51 +314,137 @@ function showChart(selected) {
 }
 
 // --------------------------------------------------------------------- Akort
+// Hedef seçilirse (ör. kemanda Re teli) iğne o notaya göre, seçilmezse en yakın notaya göre durur.
+// Referans düğmesi hedef sesi çalar; uygulama ses çalarken mikrofon kendi sesini dinlemez.
+const median = (a) => {
+  const b = [...a].sort((x, y) => x - y);
+  return b[b.length >> 1];
+};
+
 function showTuner() {
+  const inst = instrument();
+  const refs = inst.tunerRefs || [];
   view.innerHTML = '';
   const page = h(`
     <section class="tuner-page">
-      <div class="page-head"><h2>Akort ve Nota Dinleyici</h2></div>
+      <div class="page-head"><h2>Akort</h2><a class="btn ghost small" href="#/metronom">🥁 Metronom</a></div>
       <div class="tuner card">
+        <div class="tuner-refs" role="group" aria-label="Hedef nota">
+          <button class="chip-btn standalone ref-btn" data-ref="">🎯 Otomatik</button>
+          ${refs.map((r) => `<button class="chip-btn standalone ref-btn" data-ref="${r.note}" title="${r.label} sesini dinle ve ona göre akort et">🔊 ${r.label}</button>`).join('')}
+        </div>
         <div class="tuner-note">–</div>
         <div class="tuner-name muted">Bir nota çal</div>
-        <div class="gauge"><span class="needle"></span><i class="flat">♭</i><i class="mid">0</i><i class="sharp">♯</i></div>
-        <div class="tuner-cents muted"></div>
+        <div class="gauge"><span class="needle"></span><i class="flat">♭ pes</i><i class="mid">0</i><i class="sharp">tiz ♯</i><span class="gauge-ok" aria-hidden="true"></span></div>
+        <div class="tuner-cents"></div>
+        <p class="tuner-advice" aria-live="polite"></p>
         <div class="meter level" aria-hidden="true"><span></span></div>
         <button class="btn primary" data-act="mic">🎤 Mikrofonu aç</button>
       </div>
-      <p class="hint muted">${instrument().tunerHint}</p>
+      <p class="hint muted">${inst.tunerHint}</p>
       <p class="hint tuning-learned"></p>
     </section>`);
   view.appendChild(page);
+  const $ = (s) => page.querySelector(s);
   // Egzersizlerde doğru çalınan notalardan öğrenilen genel akort
-  const learned = page.querySelector('.tuning-learned');
+  const learned = $('.tuning-learned');
   const showLearned = () => {
     const c = Math.round(tuningOffset() * 100);
     learned.innerHTML =
       Math.abs(c) < 10
-        ? `Uygulamanın öğrendiği akort: ${instrument().name.toLocaleLowerCase('tr')} akordu yerinde görünüyor.`
-        : `Uygulamanın öğrendiği akort: ${instrument().name.toLocaleLowerCase('tr')} genel olarak <b>${c > 0 ? '+' : ''}${c} sent ${c > 0 ? 'tiz' : 'pes'}</b> çalıyor; alıştırmalar bunu hesaba katıyor. <button class="link" data-act="reset-tuning">Sıfırla</button>`;
+        ? `Uygulamanın öğrendiği akort: ${inst.name.toLocaleLowerCase('tr')} akordu yerinde görünüyor.`
+        : `Uygulamanın öğrendiği akort: ${inst.name.toLocaleLowerCase('tr')} genel olarak <b>${c > 0 ? '+' : ''}${c} sent ${c > 0 ? 'tiz' : 'pes'}</b> çalıyor; alıştırmalar bunu hesaba katıyor. <button class="link" data-act="reset-tuning">Sıfırla</button>`;
     learned.querySelector('[data-act=reset-tuning]')?.addEventListener('click', () => {
       resetTuning();
       showLearned();
     });
   };
   showLearned();
-  const $ = (s) => page.querySelector(s);
+
+  let target = null; // seçilen hedef nota (null: otomatik)
+  let refSound = null;
+  const recent = [];
+  let inTuneSince = 0;
+  const selectRef = (note) => {
+    target = note || null;
+    recent.length = 0;
+    page.querySelectorAll('.ref-btn').forEach((b) => b.classList.toggle('active', (b.dataset.ref || null) === target));
+    refSound?.stop();
+    refSound = target ? playNote(target, 2.5) : null;
+    $('.tuner-note').textContent = target ? shortName(target) : '–';
+    $('.tuner-name').textContent = target ? `Hedef: ${refs.find((r) => r.note === target)?.label || longName(target)} · şimdi çal` : 'Bir nota çal';
+    $('.tuner-cents').textContent = '';
+    $('.tuner-advice').textContent = '';
+  };
+  page.querySelector('.tuner-refs').addEventListener('click', (e) => {
+    const b = e.target.closest('.ref-btn');
+    if (b) selectRef(b.dataset.ref);
+  });
+  page.querySelector('.ref-btn').classList.add('active');
+
+  /** Duyulan sese göre hedef: seçilen nota, kemanda en yakın boş tel (yakınsa), yoksa en yakın nota */
+  const goalOf = (mf) => {
+    if (target) return { note: target, midi: midiOf(target) };
+    const auto = refs.filter((r) => r.auto).map((r) => ({ note: r.note, midi: midiOf(r.note) }));
+    const near = auto.find((r) => Math.abs(mf - r.midi) <= 0.6);
+    if (near) return near;
+    const m = Math.round(mf);
+    return { note: null, midi: m };
+  };
   const listener = new PitchListener(
     (f) => {
       $('.level span').style.width = `${Math.min(100, (f.rms || 0) * 600)}%`;
-      if (!f.note) return;
-      $('.tuner-note').textContent = shortName(f.note);
-      $('.tuner-name').textContent = longName(f.note);
-      $('.tuner-cents').textContent = `${f.cents > 0 ? '+' : ''}${f.cents} sent · ${f.freq.toFixed(1)} Hz`;
-      $('.needle').style.transform = `rotate(${Math.max(-50, Math.min(50, f.cents)) * 0.9}deg)`;
-      $('.tuner').classList.toggle('in-tune', Math.abs(f.cents) <= 10);
+      if (!f.note || f.midiFloat == null) {
+        recent.length = 0;
+        inTuneSince = 0;
+        $('.tuner').classList.remove('in-tune');
+        return;
+      }
+      recent.push(f.midiFloat);
+      if (recent.length > 7) recent.shift();
+      const mf = median(recent); // titreşimde iğne zıplamasın
+      const goal = goalOf(mf);
+      const cents = Math.round((mf - goal.midi) * 100);
+      const heard = f.note;
+      $('.tuner-note').textContent = shortName(goal.note || heard);
+      const adv = inst.tuneAdvice ? inst.tuneAdvice[cents > 0 ? 'sharp' : 'flat'] : cents > 0 ? inst.sharpAdvice : inst.flatAdvice;
+      const advice = typeof adv === 'function' ? adv(goal.note || heard) : adv;
+      if (target && Math.abs(cents) > 50) {
+        // Hedeften uzak: iğne kenarda; çok uzaksa büyük olasılıkla başka tel/parmak çalınıyor
+        $('.tuner-name').textContent = `Duyulan: ${longName(heard)} · hedef ${refs.find((r) => r.note === target)?.label || longName(target)}`;
+        $('.tuner-cents').textContent = `Hedeften ${cents > 0 ? '+' : ''}${cents} sent`;
+        $('.tuner-advice').textContent =
+          Math.abs(cents) > 90
+            ? `Bu başka bir nota (${longName(heard)}): ${inst.id === 'violin' ? 'doğru teli' : 'doğru parmakları'} çaldığından emin ol.`
+            : `Çok ${cents > 0 ? 'tiz' : 'pes'} → ${advice}.`;
+        $('.needle').style.transform = `rotate(${cents > 0 ? 45 : -45}deg)`;
+        $('.tuner').classList.remove('in-tune');
+        inTuneSince = 0;
+        return;
+      }
+      $('.tuner-name').textContent = goal.note ? `${refs.find((r) => r.note === goal.note)?.label || longName(goal.note)}` : longName(heard);
+      $('.tuner-cents').textContent = `${cents > 0 ? '+' : ''}${cents} sent · ${f.freq.toFixed(1)} Hz`;
+      $('.needle').style.transform = `rotate(${Math.max(-50, Math.min(50, cents)) * 0.9}deg)`;
+      const ok = Math.abs(cents) <= 5;
+      const now = performance.now();
+      if (!ok) inTuneSince = 0;
+      else if (!inTuneSince) inTuneSince = now;
+      const steady = ok && now - inTuneSince > 600;
+      $('.tuner').classList.toggle('in-tune', steady);
+      $('.tuner-advice').textContent = steady
+        ? '✓ Akortlu! Böyle kalsın.'
+        : ok
+          ? 'Neredeyse tamam, sesi sabit tut…'
+          : `${Math.abs(cents) <= 15 ? 'Çok az' : 'Biraz'} ${cents > 0 ? 'tiz' : 'pes'} → ${advice}.`;
     },
     { onStatus: (st) => ($('.tuner-name').textContent = st === 'silent' ? SILENT_MIC_MESSAGE : 'Bir nota çal') },
   );
-  active = listener;
+  active = {
+    destroy() {
+      refSound?.stop();
+      listener.stop();
+    },
+  };
   $('[data-act=mic]').addEventListener('click', async (e) => {
     try {
       await listener.start();
@@ -365,6 +454,118 @@ function showTuner() {
       $('.tuner-name').textContent = micErrorMessage(err);
     }
   });
+}
+
+// --------------------------------------------------------------------- Metronom
+function showMetronome() {
+  const st = metronomeSettings();
+  view.innerHTML = '';
+  const page = h(`
+    <section class="metro-page">
+      <div class="page-head"><h2>Metronom</h2><a class="btn ghost small" href="#/akort">🎯 Akort</a></div>
+      <div class="metro card">
+        <div class="metro-beats" aria-hidden="true"></div>
+        <div class="metro-bpm"><span class="big"></span><small>vuruş/dakika</small></div>
+        <div class="metro-term muted"></div>
+        <div class="metro-steps">
+          <button class="btn" data-step="-5" aria-label="5 yavaşlat">−5</button>
+          <button class="btn" data-step="-1" aria-label="1 yavaşlat">−1</button>
+          <button class="btn" data-step="1" aria-label="1 hızlandır">+1</button>
+          <button class="btn" data-step="5" aria-label="5 hızlandır">+5</button>
+        </div>
+        <input type="range" class="metro-slider" min="${BPM_MIN}" max="${BPM_MAX}" step="1" aria-label="Tempo">
+        <div class="metro-opts">
+          <div class="seg-group" role="group" aria-label="Ölçü">
+            ${[2, 3, 4].map((b) => `<button class="chip-btn" data-beats="${b}">${b}/4</button>`).join('')}
+            <button class="chip-btn" data-beats="1" title="Ölçü başı vurgusu olmadan">Vurgusuz</button>
+          </div>
+          <button class="chip-btn standalone" data-act="sub" title="Her vuruşun ortasında hafif bir tık: sekizlikleri saymak için">♪ Sekizlik ara vuruş</button>
+        </div>
+        <div class="metro-actions">
+          <button class="btn primary metro-toggle" data-act="toggle">▶ Başlat</button>
+          <button class="btn" data-act="tap" title="İstediğin hızda birkaç kez dokun: tempo ona ayarlanır">👆 Vuruşa dokun</button>
+        </div>
+        <p class="muted small-print">Klavye: boşluk başlat/durdur · ↑ ↓ tempo ±1 · Page Up/Down ±5</p>
+      </div>
+      <p class="hint muted">Yeni bir parçayı önce yavaş tempoda, hiç hata yapmadan çal; sonra tempoyu birkaç vuruş artır.
+        Egzersiz ve antrenman sayfalarında da tempoyu <b>−/+</b> ile değiştirebilir, metronom sesini açıp kapatabilirsin.</p>
+    </section>`);
+  view.appendChild(page);
+  const $ = (s) => page.querySelector(s);
+  const metro = new Metronome({
+    bpm: st.bpm,
+    beats: st.beats,
+    sub: st.sub,
+    onBeat: (b) => {
+      page.querySelectorAll('.metro-beats span').forEach((d, k) => d.classList.toggle('on', k === b));
+    },
+  });
+  const show = () => {
+    $('.metro-bpm .big').textContent = metro.bpm;
+    $('.metro-term').textContent = tempoName(metro.bpm);
+    $('.metro-slider').value = metro.bpm;
+    $('.metro-beats').innerHTML = Array.from({ length: metro.beats }, (_, k) => `<span class="${k === 0 && metro.beats > 1 ? 'strong' : ''}"></span>`).join('');
+    page.querySelectorAll('[data-beats]').forEach((b) => b.classList.toggle('active', Number(b.dataset.beats) === metro.beats));
+    const sub = $('[data-act=sub]');
+    sub.classList.toggle('active', metro.sub);
+    sub.setAttribute('aria-pressed', metro.sub);
+    $('.metro-toggle').textContent = metro.running ? '⏸ Durdur' : '▶ Başlat';
+    $('.metro').classList.toggle('running', metro.running);
+    saveMetronomeSettings({ bpm: metro.bpm, beats: metro.beats, sub: metro.sub });
+  };
+  const setBpm = (v) => {
+    metro.setBpm(clampBpm(v));
+    show();
+  };
+  const toggle = () => {
+    if (metro.running) metro.stop();
+    else metro.start();
+    show();
+  };
+  let taps = [];
+  const tap = () => {
+    const now = performance.now();
+    if (taps.length && now - taps.at(-1) > 2000) taps = [];
+    taps.push(now);
+    if (taps.length > 6) taps.shift();
+    if (taps.length >= 2) {
+      const gaps = taps.slice(1).map((t, k) => t - taps[k]);
+      setBpm(60000 / (gaps.reduce((a, b) => a + b, 0) / gaps.length));
+    }
+  };
+  page.querySelector('.metro').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.step) setBpm(metro.bpm + Number(b.dataset.step));
+    else if (b.dataset.beats) {
+      metro.setBeats(Number(b.dataset.beats));
+      show();
+    } else if (b.dataset.act === 'sub') {
+      metro.sub = !metro.sub;
+      show();
+    } else if (b.dataset.act === 'toggle') toggle();
+    else if (b.dataset.act === 'tap') tap();
+  });
+  $('.metro-slider').addEventListener('input', (e) => setBpm(e.target.value));
+  const onKey = (e) => {
+    if (e.target.closest?.('input, textarea, select')) return;
+    const step = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 5, PageDown: -5 }[e.key];
+    if (e.key === ' ' && !e.target.closest?.('button')) {
+      e.preventDefault();
+      toggle();
+    } else if (step) {
+      e.preventDefault();
+      setBpm(metro.bpm + step);
+    }
+  };
+  document.addEventListener('keydown', onKey);
+  active = {
+    destroy() {
+      metro.stop();
+      document.removeEventListener('keydown', onKey);
+    },
+  };
+  show();
 }
 
 // --------------------------------------------------------------------- Başlat

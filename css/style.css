@@ -714,7 +714,50 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .gauge i { position: absolute; bottom: 4px; font-style: normal; color: var(--muted); }
 .gauge .flat { left: 14px; }
 .gauge .sharp { right: 14px; }
-.gauge .mid { left: 50%; top: 4px; transform: translateX(-50%); }
+.gauge .mid { left: 50%; top: -22px; bottom: auto; transform: translateX(-50%); }
+.gauge .flat, .gauge .sharp { font-size: 0.85rem; }
+/* Yeşil bölge: ±5 sent */
+.gauge-ok { position: absolute; left: calc(50% - 9px); bottom: 0; width: 18px; height: 100px; background: color-mix(in srgb, var(--teal) 25%, transparent); border-radius: 9px 9px 0 0; }
+.tuner.in-tune .needle { background: var(--teal); }
+.tuner.in-tune .gauge-ok { background: color-mix(in srgb, var(--teal) 55%, transparent); }
+.tuner-refs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
+.ref-btn.active { background: var(--ink); color: var(--paper); border-style: solid; }
+.tuner-cents { font-weight: 700; font-variant-numeric: tabular-nums; min-height: 1.4em; }
+.tuner-advice { min-height: 2.8em; margin: 6px 0 10px; font-weight: 600; }
+.tuner.in-tune .tuner-advice { color: var(--teal); }
+.tuner-page .page-head, .metro-page .page-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* ------------------------------------------------------------- metronom */
+.metro { max-width: 460px; margin: 0 auto; text-align: center; display: grid; gap: 14px; justify-items: center; }
+.metro-beats { display: flex; gap: 12px; justify-content: center; min-height: 34px; }
+.metro-beats span { width: 30px; height: 30px; border: 2.5px solid var(--ink); border-radius: 50%; background: var(--paper); transition: background 0.06s, transform 0.06s; }
+.metro-beats span.strong { border-width: 4px; }
+.metro-beats span.on { background: var(--sun); transform: scale(1.15); }
+.metro-beats span.strong.on { background: var(--coral); }
+.metro-bpm { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.metro-bpm .big { font-size: 4.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.metro-term { font-weight: 600; }
+.metro-steps, .metro-actions, .metro-opts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.metro-steps .btn { min-width: 58px; }
+.metro-slider { width: 100%; accent-color: var(--coral); }
+.metro-toggle { min-width: 150px; font-size: 1.15rem; }
+.metro-opts .chip-btn.standalone.active { background: var(--ink); color: var(--paper); border-style: solid; }
+
+/* Egzersiz/antrenman sayfasında tempo düğmeleri */
+.tempo-ctl { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tempo-ctl .seg-group .chip-btn { min-width: 42px; font-size: 1.2rem; font-weight: 700; }
+.tempo-val { display: inline-flex; align-items: center; align-self: stretch; gap: 4px; padding: 0 8px; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); background: var(--paper); }
+.tempo-val input {
+  width: 3.2em; font: inherit; font-weight: 700; font-size: 1.15rem; text-align: center; border: none; background: transparent; color: var(--ink);
+  -moz-appearance: textfield; appearance: textfield;
+}
+.tempo-val input::-webkit-outer-spin-button, .tempo-val input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tempo-val small { color: var(--muted); }
+.clicks-btn.active { background: var(--ink); color: var(--paper); border-style: solid; }
+.tempo-note { font-weight: 600; }
+/* Kemanda parmak yeri şeması: egzersiz sahnesinde ortada, uygun boyda */
+.ws-flute .mini-fingerboard { display: block; width: auto; height: 260px; max-width: 100%; margin: 4px auto; }
+.ws-new-note .mini-fingerboard { display: block; height: 200px; width: auto; margin: 0 auto; }
 
 /* ------------------------------------------------------------- dar ekranlar */
 @media (max-width: 720px) {
