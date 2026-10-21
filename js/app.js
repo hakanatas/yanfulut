@@ -7,7 +7,7 @@ import { DotsGame } from './dots.js';
 import { DrillGame } from './drill.js';
 import { SheetGame } from './sheet.js';
 import { progress } from './progress.js';
-import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE, tuningOffset, resetTuning } from './audio.js';
+import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE, tuningOffset, resetTuning, setTuning } from './audio.js';
 import { fingeringSvg, staffSvg, h } from './checkpoints.js';
 import { mascot } from './art.js';
 import { Metronome, BPM_MAX, BPM_MIN, clampBpm, metronomeSettings, saveMetronomeSettings, tempoName } from './metronome.js';
@@ -352,8 +352,8 @@ function showTuner() {
     const c = Math.round(tuningOffset() * 100);
     learned.innerHTML =
       Math.abs(c) < 10
-        ? `Uygulamanın öğrendiği akort: ${inst.name.toLocaleLowerCase('tr')} akordu yerinde görünüyor.`
-        : `Uygulamanın öğrendiği akort: ${inst.name.toLocaleLowerCase('tr')} genel olarak <b>${c > 0 ? '+' : ''}${c} sent ${c > 0 ? 'tiz' : 'pes'}</b> çalıyor; alıştırmalar bunu hesaba katıyor. <button class="link" data-act="reset-tuning">Sıfırla</button>`;
+        ? `Uygulamanın bildiği akort: ${inst.name.toLocaleLowerCase('tr')} akordu yerinde. Burada akort edince alıştırmalar da yeni akordu kullanır.`
+        : `Uygulamanın bildiği akort: ${inst.name.toLocaleLowerCase('tr')} genel olarak <b>${c > 0 ? '+' : ''}${c} sent ${c > 0 ? 'tiz' : 'pes'}</b> çalıyor; alıştırmalar bunu hesaba katıyor. Burada akort edip bir notayı sabit tutunca güncellenir. <button class="link" data-act="reset-tuning">Sıfırla</button>`;
     learned.querySelector('[data-act=reset-tuning]')?.addEventListener('click', () => {
       resetTuning();
       showLearned();
@@ -365,6 +365,26 @@ function showTuner() {
   let refSound = null;
   const recent = [];
   let inTuneSince = 0;
+  // Enstrüman yeniden akort edilince alıştırmalar eski (öğrenilmiş) akordu kullanmasın:
+  // sabit tutulan bir nota ölçülünce uygulamanın akordu bu ölçüme ayarlanır
+  let steadySince = 0;
+  let steadyCents = [];
+  let lastSet = 0;
+  const measure = (cents, now) => {
+    if (Math.abs(cents) > 50) {
+      steadySince = 0;
+      steadyCents = [];
+      return;
+    }
+    if (!steadySince) steadySince = now;
+    steadyCents.push(cents);
+    if (steadyCents.length > 60) steadyCents.shift();
+    if (now - steadySince > 1200 && now - lastSet > 1000) {
+      lastSet = now;
+      setTuning(median(steadyCents) / 100);
+      showLearned();
+    }
+  };
   const selectRef = (note) => {
     target = note || null;
     recent.length = 0;
@@ -397,6 +417,8 @@ function showTuner() {
       if (!f.note || f.midiFloat == null) {
         recent.length = 0;
         inTuneSince = 0;
+        steadySince = 0;
+        steadyCents = [];
         $('.tuner').classList.remove('in-tune');
         return;
       }
@@ -410,6 +432,8 @@ function showTuner() {
       const adv = inst.tuneAdvice ? inst.tuneAdvice[cents > 0 ? 'sharp' : 'flat'] : cents > 0 ? inst.sharpAdvice : inst.flatAdvice;
       const advice = typeof adv === 'function' ? adv(goal.note || heard) : adv;
       if (target && Math.abs(cents) > 50) {
+        steadySince = 0;
+        steadyCents = [];
         // Hedeften uzak: iğne kenarda; çok uzaksa büyük olasılıkla başka tel/parmak çalınıyor
         $('.tuner-name').textContent = `Duyulan: ${longName(heard)} · hedef ${refs.find((r) => r.note === target)?.label || longName(target)}`;
         $('.tuner-cents').textContent = `Hedeften ${cents > 0 ? '+' : ''}${cents} sent`;
@@ -427,6 +451,7 @@ function showTuner() {
       $('.needle').style.transform = `rotate(${Math.max(-50, Math.min(50, cents)) * 0.9}deg)`;
       const ok = Math.abs(cents) <= 5;
       const now = performance.now();
+      measure(cents, now);
       if (!ok) inTuneSince = 0;
       else if (!inTuneSince) inTuneSince = now;
       const steady = ok && now - inTuneSince > 600;

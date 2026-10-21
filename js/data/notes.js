@@ -54,6 +54,8 @@ const FINGERINGS = {
 };
 
 const TIPS = {
+  B4: 'Sol başparmak büyük Si anahtarında (yanındaki küçük Si bemol mandalında değil) ve sol işaret parmağı kapalı.',
+  Bb4: 'Si parmaklarına sağ işaret parmağını ekle. Başka yol: başparmağını küçük Si bemol mandalına koy.',
   D5: 'Pes Re ile aynı, yalnızca sol işaret parmağını kaldır.',
   E5: 'Pes Mi ile aynı parmaklar; havayı biraz daha hızlı ve dar üfle.',
   F5: 'Pes Fa ile aynı parmaklar; hava akımını hızlandır.',

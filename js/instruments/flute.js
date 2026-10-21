@@ -109,6 +109,10 @@ export default {
     const up = midiOf(heard) - midiOf(target);
     const close = KEYS.filter((k) => want.has(k) && !got.has(k));
     const lift = KEYS.filter((k) => got.has(k) && !want.has(k));
+    // Si yerine Si bemol: çoğu zaman sağ işaret parmağı değil, başparmak küçük Si bemol mandalına basıyordur
+    if (/^B\d$/.test(target) && heard === `Bb${target.slice(1)}`) {
+      return `${titleName(target)} için sağ işaret parmağını kaldır. Zaten kalkıksa başparmağın küçük Si bemol mandalına basıyor: başparmak anahtarı iki parçalıdır, başparmağını büyük Si anahtarına koy.`;
+    }
     if (!close.length && !lift.length) {
       return `Parmakların doğru; ${up > 0 ? 'havayı yavaşlat, ses bir üst oktava kaçıyor' : 'havayı hızlandır, ses bir alt oktava düşüyor'}.`;
     }
