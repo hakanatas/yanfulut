@@ -421,18 +421,25 @@ export function learnTuning(frame, target) {
   }
 }
 
-/** Öğrenilen akordu sıfırla */
-export function resetTuning() {
+/**
+ * Akordu doğrudan ayarla (Akort sayfası enstrümanın şu anki akordunu ölçünce): öğrencinin enstrümanı
+ * yeniden akort etmesinden önce öğrenilmiş eski değer kalmasın. Biriken ölçümler de silinir.
+ */
+export function setTuning(offset) {
   const t = tuningState();
-  t.offset = 0;
+  t.offset = Math.round(Math.max(-MAX_TUNING, Math.min(MAX_TUNING, offset)) * 100) / 100;
   t.notes = new Map();
   t.count = 0;
   try {
-    sessionStorage.removeItem(t.key);
+    if (t.offset) sessionStorage.setItem(t.key, JSON.stringify({ offset: t.offset }));
+    else sessionStorage.removeItem(t.key);
   } catch {
     /* yok say */
   }
 }
+
+/** Öğrenilen akordu sıfırla */
+export const resetTuning = () => setTuning(0);
 
 /**
  * Bu kare hedef nota sayılır mı? Yeni başlayanlar sık sık 30–60 sent tiz ya da pes
