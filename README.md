@@ -71,6 +71,8 @@ gösterilir; satırlar ayrı kartlarda durur, çalınan nota üzerinde vurgu ve 
 (puanlanmaz), korona notası yazılanın iki katı tutulur, bağlı notalar tek nota sayılır. Bütün egzersiz ya da tek bir satır
 çalınabilir; sonda doğru / süresi kısa / yanlış / kaçırılan nota sayıları ve yüzde gösterilir. Her ünite yeni notalarını
 önce tanıtır; `tools/check-course.mjs` egzersizlerin yalnızca tanıtılmış notaları kullandığını ve ölçü toplamlarını denetler.
+Çalarken çalınan satır ekranın üstüne kayar (altındaki satır önceden görünür); büyük hedef kartı ekrandan çıkınca sayım, hedef
+nota, süre ve geri bildirim satırların üstündeki yapışkan şeritte görünür.
 
 ### Antrenman
 Resim yok; hedef doğru notayı **doğru süre** boyunca çalmak. Parça gerçek nota yazısıyla gösterilir: 4/4 ölçüler, her vuruşun altında sayı (1 2 3 4), her notanın altında uzunluğunu gösteren süre çubuğu ve aynı vuruştaki sekizlikler kirişle bağlı.
