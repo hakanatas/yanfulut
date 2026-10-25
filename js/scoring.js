@@ -115,8 +115,10 @@ export class TempoFollower {
     if (cur < 0 || !next || next.rest || start == null) return heard;
     const prev = this.events[cur];
     const same = prev && !prev.rest && prev.midi === next.midi;
-    // Sıradaki nota başladı mı? Aynı nota tekrarındaysa yeni bir dil vuruşu gerekir
-    const started = isMidi(next.midi) && (!same || this.lastOnset >= start - this.win);
+    // Sıradaki nota başladı mı? Aynı nota tekrarındaysa yeni bir dil vuruşu gerekir. Kısa notada (ör. sekizlik)
+    // şimdiki notanın kendi başlangıcı sayılmasın: yeni vuruş notanın ikinci yarısında olmalı
+    const reach = Math.min(this.win, (start - (this.starts[cur] ?? start - this.win)) / 2);
+    const started = isMidi(next.midi) && (!same || this.lastOnset >= start - reach);
     if (heard < start && heard >= start - this.win && started) {
       this.offset -= start - heard; // erken geçiş: çizgiyi ileri al
       return start;
