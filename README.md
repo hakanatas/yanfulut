@@ -56,12 +56,14 @@ bağ, 2/4, tam ölçü sus) ve Mi telinde parmaklar (Fa♯, Sol♯, La; sekizlik
 ezgiler: Saint Margarita Ninnisi, Küçük Hans, Ay Işığında, Zil Sesleri, Londra Köprüsü, Küçük Ördekler. Kemanda büyük flüt resmi
 yerine parmak yeri şeması görünür; aynı nota tekrarında "yayı yeniden başlat" denir.
 
-**Flüt**:
-
-Toplam 45 egzersiz: kağıttaki egzersizlerin ardından her ünitede aynı notalar ve ritimlerle ek alıştırmalar
+**Flüt**: 7 ünitede toplam 61 egzersiz. Kağıttaki egzersizlerin ardından her ünitede aynı notalar ve ritimlerle ek alıştırmalar
 (basamaklar, atlamalar, 3/4 vals, sus ile başlayan ölçüler, ölçüyü aşan bağlar, Si/Si bemol ayrımı, Fa majör dizisi) ve
-telif süresi dolmuş geleneksel ezgiler var: Sıcak Çörekler, Ay Işığında (Au clair de la lune), Küçük Yıldız, Küçük Hans
-(Hänschen klein), Zil Sesleri (Jingle Bells nakaratı) ve Neşeye Övgü (Beethoven).
+telif süresi dolmuş, bilindik ezgiler var: Sıcak Çörekler, Ay Işığında (Au clair de la lune), Küçük Yıldız, Küçük Hans
+(Hänschen klein), Zil Sesleri (Jingle Bells nakaratı), Küçük Kuzu ve Neşeye Övgü (Beethoven).
+**Ünite 6** pes Re, Fa diyez ve ince Mi'yi tanıtır; Sol majörde: Ali Baba'nın Çiftliği (Old MacDonald), Tembel Çocuk (Frère Jacques),
+Küçük Ördekler, Yankee Doodle, İyi ki Doğdun (Happy Birthday, 3/4 anakruz), Londra Köprüsü, Eve Dönüş (Dvořák, Yeni Dünya),
+Amazing Grace ve Neşeye Övgü'nün orta bölümlü tam hali. **Ünite 7** ince Fa diyez ve ince Sol'u tanıtır: oktav atlamaları ve
+Petzold'un Sol majör Minuet'i (Anna Magdalena Bach defteri). Kemanda da Ali Baba'nın Çiftliği, Eve Dönüş ve Amazing Grace var.
 
 **Parçalar** bölümünde "Bana Bir Masal Anlat Baba" (Söz: Yavuz Turgul – Cengiz Onural, Müzik: Cengiz Onural) dört notaya
 (La, Si, İnce Do, İnce Re) uyarlanmış kolay düzenlemesiyle bulunur: sekizlik, noktalı dörtlük ve sekizlik sus içerir.
@@ -79,7 +81,7 @@ Resim yok; hedef doğru notayı **doğru süre** boyunca çalmak. Parça gerçek
 
 - **Kendi hızımda:** Her nota süresi kadar (vuruş × tempo) tutulunca geçilir; vuruş noktaları tutarken dolar. Erken bırakılırsa "Kısa kaldı: 2 vuruş tutmalısın" denir ve nota tekrar istenir.
 - **Tempolu:** Dört vuruşluk metronom sayımından sonra okuma çizgisi **ilk notanı duyana kadar bekler**, sonra ilerler; her nota hem nota hem süre için puanlanır (yeşil: tam, sarı: süre eksik, kırmızı: yanlış ya da kaçtı).
-- **Okuma çizgisi öğrenciyi izler** (`TempoFollower`): nota geçişinde sıradaki nota en çok 0,32 sn erken başlarsa çizgi ona uyar, geç kalırsa o kadar bekler; böylece insan temposundaki küçük kaymalar notadan notaya birikmez.
+- **Okuma çizgisi öğrenciyi izler** (`TempoFollower`): nota geçişinde sıradaki nota en çok 0,32 sn erken başlarsa çizgi ona uyar, geç kalırsa o kadar bekler; böylece insan temposundaki küçük kaymalar notadan notaya birikmez. Aynı nota tekrarında erken geçiş için yeni vuruş notanın ikinci yarısında aranır; kısa notada (ör. iki sekizlik) şimdiki notanın kendi başlangıcı sonrakinin başlangıcı sanılmaz.
 - **Süre affedilmez** (`js/scoring.js`): nota ancak yazılı süresinin neredeyse tamamı çalınırsa "tam süre" sayılır; yalnızca dil vurma boşluğu kadar (en çok 0,17 sn ya da sürenin %12'si) eksik kalabilir. Aynı nota art arda geliyorsa her biri yeniden başlatılmalı (dil vurma); tek uzun ses olarak çalınırsa sayılmaz. Kendi hızımda modunda da aynı pay geçerli; sıradaki notaya süre dolmadan geçilirse nota "yanlış" değil "süre eksik" sayılır ve devam edilir (aynı nota tekrarında ise nota yeniden istenir).
 - **Tempo elle ayarlanır:** egzersiz ve antrenman sayfalarında **− / +** düğmeleri ya da kutuya yazarak 30–200 vuruş/dk; seçilen tempo o alıştırma için hatırlanır, "Yazılı tempo" ile geri dönülür. Yazılı tempodan %10'dan fazla yavaş çalınınca en çok 2 yıldız verilir ve sonuçta not düşülür.
 - **Metronom sesi:** Tempolu modda öğrenci başlayınca her vuruşta (ölçü başı vurgulu) tahta tıkırtısı çalar; ses okuma çizgisiyle birlikte zamanlanır (`js/metronome.js`, Web Audio). Tıkırtı perdesiz gürültü olduğu için mikrofondaki nota algısını şaşırtmaz. "Metronom sesi açık/kapalı" düğmesiyle kapatılabilir.

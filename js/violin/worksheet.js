@@ -3,7 +3,7 @@
 // Her ünite yeni notalarını "newNotes" ile tanıtır; egzersizler yalnızca o üniteye kadar tanıtılan notaları
 // kullanır (tools/check-course.mjs denetler). Ezgiler telif süresi dolmuş geleneksel ezgilerdir.
 
-export const SOURCE = 'Uygulamaya özgü keman alıştırmaları; ezgiler geleneksel (Küçük Hans, Saint Margarita Ninnisi, Ay Işığında, Zil Sesleri, Londra Köprüsü, Küçük Ördekler)';
+export const SOURCE = 'Uygulamaya özgü keman alıştırmaları; ezgiler telif süresi dolmuş geleneksel ve klasik ezgiler';
 
 export const UNITS = [
   {
@@ -264,6 +264,14 @@ export const UNITS = [
           'G4 G4 G4 G4 | G4 F#4 F#4 F#4 | A4 A4 G4 E4 | D4:4',
         ],
       },
+      {
+        id: 'k4-ciftlik',
+        title: 'Ali Baba\'nın Çiftliği',
+        focus: 'Geleneksel ezgi (Old MacDonald Had a Farm) · La majör',
+        time: 4,
+        bpm: 96,
+        rows: ['A4 A4 A4 E4 | F#4 F#4 E4:2 | C#5 C#5 B4 B4 | A4:3 E4', 'A4 A4 A4 E4 | F#4 F#4 E4:2 | C#5 C#5 B4 B4 | A4:4'],
+      },
     ],
   },
   {
@@ -330,6 +338,28 @@ export const UNITS = [
         time: 4,
         bpm: 84,
         rows: ['A4 B4 C#5 D5 | E5:2 E5:2 | F#5 F#5 F#5 F#5 | E5:4', 'F#5 F#5 F#5 F#5 | E5:4 | D5 D5 D5 D5 | C#5:2 C#5:2', 'B4 B4 B4 B4 | A4:4'],
+      },
+      {
+        id: 'k5-eve-donus',
+        title: 'Eve Dönüş',
+        focus: 'Dvořák, Yeni Dünya Senfonisi Largo teması (1893) · Re majör, uzun yaylar',
+        time: 4,
+        bpm: 60,
+        rows: ['F#4:1.5 A4:.5 A4:2 | F#4:1.5 E4:.5 D4:2 | E4 F#4 A4 F#4 | E4:4', 'F#4:1.5 A4:.5 A4:2 | F#4:1.5 E4:.5 D4:2 | E4 F#4 E4 D4 | D4:4'],
+      },
+      {
+        id: 'k5-grace',
+        title: 'Amazing Grace',
+        focus: 'Geleneksel ilahi ezgisi (New Britain) · La majör, 3/4',
+        time: 3,
+        pickup: 1,
+        bpm: 76,
+        rows: [
+          'E4 | A4:2 C#5:.5 A4:.5 | C#5:2 B4 | A4:2 F#4 | E4:2 E4',
+          'A4:2 C#5:.5 A4:.5 | C#5:2 B4 | E5:3~ | E5:2 C#5',
+          'E5:1.5 C#5:.5 E5:.5 C#5:.5 | A4:2 E4 | F#4:1.5 A4:.5 A4:.5 F#4:.5 | E4:2 E4',
+          'A4:2 C#5:.5 A4:.5 | C#5:2 B4 | A4:2',
+        ],
       },
     ],
   },
