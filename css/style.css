@@ -611,6 +611,19 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .beat-dots span.extra { border-style: dashed; }
 .beat-dots span.rest { border-radius: 8px; }
 .ws-rows { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+/* Çalarken satırların üstünde yapışkan şerit: sayım, hedef nota, süre ve geri bildirim */
+.ws-live {
+  display: none; position: sticky; top: var(--live-top, 0px); z-index: 6; align-items: baseline; gap: 6px 14px; flex-wrap: wrap;
+  margin-top: 14px; padding: 8px 14px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: var(--shadow);
+}
+.ws.running .ws-live { display: flex; }
+.ws-live-count:not(:empty) { font-size: 1.6rem; font-weight: 700; color: var(--coral); }
+.ws-live-name { font-size: 1.5rem; }
+.ws-live-value { font-weight: 600; }
+.ws-live-fb { flex-basis: 100%; font-weight: 600; min-height: 1.3em; }
+.ws-live-fb:empty { display: none; }
+.ws-live-heard { margin-left: auto; font-size: 0.9rem; }
+.ws.running .ws-live + .ws-rows { margin-top: 10px; }
 .ws-row {
   background: var(--paper); border: 2.5px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 8px 10px 4px; transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
@@ -785,5 +798,6 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  /* transition: none — 0,01 ms'lik geçiş bile her stil değişikliğini bir kare geciktirip yerleşimi oynatıyordu */
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition: none !important; }
 }

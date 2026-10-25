@@ -267,6 +267,13 @@ export class SheetGame {
           <div class="ws-flute"></div>
         </div>
         <div class="drill-result ws-result" hidden></div>
+        <div class="ws-live" aria-hidden="true">
+          <span class="ws-live-count"></span>
+          <b class="ws-live-name"></b>
+          <span class="ws-live-value"></span>
+          <span class="ws-live-fb"></span>
+          <span class="ws-live-heard muted"></span>
+        </div>
         <div class="ws-rows"></div>
         <div class="touch-pad" hidden>
           ${distinct.map((n) => `<button class="pad-key" data-note="${n}"><b>${shortName(n)}</b>${longName(n) !== shortName(n) ? `<small>${longName(n)}</small>` : ''}</button>`).join('')}
@@ -277,6 +284,21 @@ export class SheetGame {
     this.$ = $;
 
     // Satırlar: her biri ayrı kartta
+    // Çalarken satırlar ekranın üstüne kayar; büyük hedef kartı görünmez kalınca nota, süre ve geri bildirim
+    // satırların üstündeki ince şeritte (yapışkan) de görünür
+    const live = (sel, from) => {
+      const src = $(from);
+      const dst = $(sel);
+      const sync = () => (dst.textContent = src.hidden ? '' : src.textContent);
+      new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+      sync();
+    };
+    live('.ws-live-count', '.countdown');
+    live('.ws-live-name', '.target-name');
+    live('.ws-live-value', '.value-text');
+    live('.ws-live-fb', '.cp-feedback');
+    live('.ws-live-heard', '.mic-status');
+
     const rowsEl = $('.ws-rows');
     let pos = ex.pickup ? ex.time - ex.pickup : 0;
     let base = 0;
@@ -412,6 +434,7 @@ export class SheetGame {
   stop({ keepMic = false } = {}) {
     this.running = false;
     this.el?.classList.remove('running');
+    this.el?.querySelector('.ws-rows')?.style.removeProperty('padding-bottom');
     cancelAnimationFrame(this.raf);
     clearTimeout(this.timer);
     cancelAnimationFrame(this.cmdRaf);
@@ -435,8 +458,17 @@ export class SheetGame {
     const row = this.events[i].row;
     this.rowEls.forEach((r, k) => r.classList.toggle('active', k === row));
     if (row !== this.activeRow) {
+      // Yeni satır ekranın üstüne gelir (üst çubuk ve şeridin hemen altına): altındaki satır da önceden görünür
       this.activeRow = row;
-      this.rowEls[row].scrollIntoView({ behavior: smooth(), block: 'nearest' });
+      const header = document.querySelector('.topbar')?.offsetHeight || 0;
+      this.el.style.setProperty('--live-top', `${header}px`);
+      const cover = header + (this.$('.ws-live').offsetHeight || 0) + 10;
+      const top = this.rowEls[row].getBoundingClientRect().top + window.scrollY - cover;
+      // Son satırlar da üste gelebilsin: sayfa yetmiyorsa altına tam gerektiği kadar boşluk eklenir
+      const rows = this.$('.ws-rows');
+      const need = top + window.innerHeight - document.documentElement.scrollHeight;
+      if (need > 0) rows.style.paddingBottom = `${(parseFloat(rows.style.paddingBottom) || 0) + need + 2}px`;
+      window.scrollTo({ top, behavior: smooth() });
     }
     // Uzun satırlarda (dar ekran) notayı yatayda görünür tut
     const scroller = this.rowEls[row].querySelector('.ws-row-scroll');
