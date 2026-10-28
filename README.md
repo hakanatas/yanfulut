@@ -64,6 +64,8 @@ telif süresi dolmuş, bilindik ezgiler var: Sıcak Çörekler, Ay Işığında 
 Küçük Ördekler, Yankee Doodle, İyi ki Doğdun (Happy Birthday, 3/4 anakruz), Londra Köprüsü, Eve Dönüş (Dvořák, Yeni Dünya),
 Amazing Grace ve Neşeye Övgü'nün orta bölümlü tam hali. **Ünite 7** ince Fa diyez ve ince Sol'u tanıtır: oktav atlamaları ve
 Petzold'un Sol majör Minuet'i (Anna Magdalena Bach defteri). Kemanda da Ali Baba'nın Çiftliği, Eve Dönüş ve Amazing Grace var.
+**Parçalar**'da Üsküdar'a Gider İken (Kâtibim, anonim türkü) ilk kıtası var: nota sırası iki kaynakta aynı, ritim sadeleştirildi;
+doğrulanamayan nakarat eklenmedi. Başka türküler, notası (fotoğraf ya da do-re-mi yazısı) gelince eklenecek.
 
 **Parçalar** bölümünde "Bana Bir Masal Anlat Baba" (Söz: Yavuz Turgul – Cengiz Onural, Müzik: Cengiz Onural) dört notaya
 (La, Si, İnce Do, İnce Re) uyarlanmış kolay düzenlemesiyle bulunur: sekizlik, noktalı dörtlük ve sekizlik sus içerir.

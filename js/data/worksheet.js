@@ -600,7 +600,7 @@ export const UNITS = [
   {
     id: 'parcalar',
     title: 'Parçalar',
-    subtitle: 'Sevilen ezgiler · sekizlik ve noktalı dörtlük',
+    subtitle: 'Sevilen ezgiler ve türküler · sekizlik ve noktalı dörtlük',
     newNotes: [],
     concepts: [
       { sym: '♪', title: 'Sekizlik nota', text: 'Yarım vuruş. İki sekizlik bir dörtlük eder; "tu-tu" diye hızlıca dil vur.' },
@@ -625,6 +625,20 @@ export const UNITS = [
           // Ara ezgi
           'A4 R:1 C5 R:1 | B4 C5:.5 B4:1.5 R:1 | R:1 B4:.5 B4:.5 B4:.5 B4:1.5 | C5 D5:.5 C5 R:.5 R:1',
           'R:1 A4:.5 A4:.5 A4:.5 A4:1.5 | B4 C5:.5 D5 C5:1.5 | A4:4',
+        ],
+      },
+      {
+        id: 'katibim',
+        title: 'Üsküdar\'a Gider İken (Kâtibim)',
+        focus: 'Anonim İstanbul türküsü · ilk kıta, kolay düzenleme · 2/4',
+        credit:
+          'Anonim türkü. Nota sırası iki kaynakta aynı (Blok Flüt Notaları, Şarkı Notası); ritim sadeleştirildi, kaynaklarda yalnızca nota sırası vardı. Son ölçüdeki en pes do (do♯) yerine re çalınır. Nakarat ("Kâtip uykudan uyanmış…") doğrulanamadığı için eklenmedi.',
+        time: 2,
+        bpm: 76,
+        rows: [
+          'D4:.5 A4:.5 A4:.5 A4:.5 | Bb4:.5 A4:.5 Bb4:.5 C5:.5 | A4 A4 | G4:.5 G4:.5 G4:.5 F4:.5 | G4 A4~ | A4:2',
+          'D4:.5 A4:.5 A4:.5 A4:.5 | Bb4:.5 A4:.5 Bb4:.5 C5:.5 | A4 A4 | G4:.5 G4:.5 G4:.5 F4:.5 | G4 A4~ | A4:2',
+          'D4:.5 E4:.5 F4:.5 G4:.5 | A4:.5 Bb4:.5 A4:.5 G4:.5 | F4:.5 E4:.5 D4 | E4:.5 G4:.5 F4:.5 E4:.5 | E4:.5 D4:.5 D4:.5 E4:.5 | E4:2',
         ],
       },
       {
