@@ -244,7 +244,7 @@ function showWorksheetList() {
           const notes = [...new Set(e.rows.join(' ').split(/\s+/).map((t) => t.split(':')[0].replace(/[!~]/g, '')).filter((t) => /^[A-G]/.test(t)))]
             .sort((a, b) => midiOf(a) - midiOf(b)).map(shortName).join(' · ');
           return `<a class="drill-card" href="#/egzersiz/${e.id}">
-            <span class="node-kind">${e.time}/4 · ${e.rows.length} satır</span>
+            <span class="node-kind">${e.sig || `${e.time}/4`} · ${e.rows.length} satır</span>
             <b>${e.title}</b>
             <span>${e.focus}</span>
             <small class="muted">Notalar: ${notes} · ${e.bpm} vuruş/dk</small>
