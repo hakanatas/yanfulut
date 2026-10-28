@@ -66,6 +66,9 @@ Amazing Grace ve Neşeye Övgü'nün orta bölümlü tam hali. **Ünite 7** ince
 Petzold'un Sol majör Minuet'i (Anna Magdalena Bach defteri). Kemanda da Ali Baba'nın Çiftliği, Eve Dönüş ve Amazing Grace var.
 **Parçalar**'da Üsküdar'a Gider İken (Kâtibim, anonim türkü) ilk kıtası var: nota sırası iki kaynakta aynı, ritim sadeleştirildi;
 doğrulanamayan nakarat eklenmedi. Başka türküler, notası (fotoğraf ya da do-re-mi yazısı) gelince eklenecek.
+**Ünite 8** ince Fa, ince La ve Sol diyezi tanıtır; 5/8 aksak ölçü (`time: 2.5, sig: '5/8', beatUnit: 0.5`: metronom ve sayım
+sekizlik vurur). Öğretmenin gönderdiği notalardan: Caddelerde Rüzgar, Fikrimin İnce Gülü (giriş ve ilk dize), Gönül Sayfam ve
+Kara Tren; tekrarlar ve 1./2. sonlar satırlara açıldı, üçlemeler ve onaltılıklar sekizliğe sadeleştirildi.
 
 **Parçalar** bölümünde "Bana Bir Masal Anlat Baba" (Söz: Yavuz Turgul – Cengiz Onural, Müzik: Cengiz Onural) dört notaya
 (La, Si, İnce Do, İnce Re) uyarlanmış kolay düzenlemesiyle bulunur: sekizlik, noktalı dörtlük ve sekizlik sus içerir.

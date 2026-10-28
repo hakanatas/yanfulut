@@ -33,8 +33,10 @@ function staffLines(g, x1, x2) {
 
 const clef = (g, x) => `<text x="${x}" y="${g.bottom + g.sp * 1.05}" font-size="${g.sp * 6.6}" class="clef ink-fill">𝄞</text>`;
 
-function timeSig(g, x, time) {
-  return `<text x="${x}" y="${g.top + g.sp * 1.9}" font-size="${g.sp * 2.4}" text-anchor="middle" class="time-sig">${time}</text><text x="${x}" y="${g.top + g.sp * 3.9}" font-size="${g.sp * 2.4}" text-anchor="middle" class="time-sig">4</text>`;
+/** sig: "4/4", "3/4", "5/8"… */
+function timeSig(g, x, sig) {
+  const [top, bottom] = sig.split('/');
+  return `<text x="${x}" y="${g.top + g.sp * 1.9}" font-size="${g.sp * 2.4}" text-anchor="middle" class="time-sig">${top}</text><text x="${x}" y="${g.top + g.sp * 3.9}" font-size="${g.sp * 2.4}" text-anchor="middle" class="time-sig">${bottom}</text>`;
 }
 
 /** Nota başı, sapı, ek çizgileri, bemol/diyez işareti ve uzatma noktası */
@@ -88,7 +90,7 @@ const MIN_W = 44;
  * Bir satırı çizer. items: parseRow çıktısı. first: egzersizin ilk satırı mı (ölçü işareti çizilir)
  * startPos: satır başında ölçü içindeki vuruş konumu. Dönüş: {svg, geo: [{x, w, cx}], endPos}
  */
-function rowSvg(items, { time, first, startPos, rowIndex, baseIndex }) {
+function rowSvg(items, { time, unit = 1, sig, first, startPos, rowIndex, baseIndex }) {
   const g = geometry(SP, TOP);
   const nameY = g.bottom + 30;
   const barY = g.bottom + 37;
@@ -117,8 +119,9 @@ function rowSvg(items, { time, first, startPos, rowIndex, baseIndex }) {
     // Vuruş numaraları
     let nums = '';
     // Yalnızca vuruş başları numaralanır (sekizliklerde vuruş ortası boş kalır)
-    for (let t = Math.ceil(pos - 1e-9); t < pos + it.beats - 1e-9; t++) {
-      const n = (t % time) + 1;
+    // 5/8 gibi ölçülerde vuruş birimi sekizliktir (unit 0,5)
+    for (let t = Math.ceil(pos / unit - 1e-9) * unit; t < pos + it.beats - 1e-9; t += unit) {
+      const n = Math.round((t % time) / unit) + 1;
       nums += `<text x="${x + 16 + ((t - pos) / it.beats) * (w - 16)}" y="${numY}" text-anchor="middle" class="beat-num ${n === 1 ? 'strong' : ''}">${n}</text>`;
     }
     const idx = baseIndex + k;
@@ -154,7 +157,7 @@ function rowSvg(items, { time, first, startPos, rowIndex, baseIndex }) {
   });
   const width = x + 14;
   let head = staffLines(g, 8, width - 6) + clef(g, 10);
-  if (first) head += timeSig(g, 80, time);
+  if (first) head += timeSig(g, 80, sig || `${time}/4`);
   head += `<line class="playhead" x1="0" y1="${g.top - g.sp * 2.4}" x2="0" y2="${numY + 4}" hidden/>`;
   return {
     svg: `<svg class="ws-row-svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${rowIndex + 1}. satır">${head}${body}</svg>`,
@@ -233,7 +236,7 @@ export class SheetGame {
           <div>
             <div class="cp-tag">Egzersiz Yap</div>
             <h2>${ex.title}</h2>
-            <p class="muted">${ex.focus} · ${ex.time}/4 ölçü · yazılı tempo ${ex.bpm} vuruş/dakika · ${this.scored.length} nota</p>
+            <p class="muted">${ex.focus} · ${ex.sig || `${ex.time}/4`} ölçü · yazılı tempo ${ex.bpm} vuruş/dakika · ${this.scored.length} nota</p>
             ${ex.credit ? `<p class="muted small-print ws-credit">${ex.credit}</p>` : ''}
           </div>
           <div class="stars" aria-label="Yıldızlar"></div>
@@ -304,7 +307,7 @@ export class SheetGame {
     let base = 0;
     this.geo = [];
     this.rowEls = ex.parsed.map((row, r) => {
-      const { svg, geo, endPos } = rowSvg(row, { time: ex.time, first: r === 0, startPos: pos, rowIndex: r, baseIndex: base });
+      const { svg, geo, endPos } = rowSvg(row, { time: ex.time, unit: ex.beatUnit, sig: ex.sig, first: r === 0, startPos: pos, rowIndex: r, baseIndex: base });
       pos = endPos;
       base += row.length;
       this.geo.push(...geo);
@@ -747,7 +750,9 @@ export class SheetGame {
     const countEl = this.$('.countdown');
     countEl.hidden = false;
     const time = this.ex.time;
-    const clicks = time === 2 ? 4 : time;
+    const unit = this.ex.beatUnit || 1; // 5/8'de sekizlikler sayılır
+    const perBar = Math.round(time / unit);
+    const clicks = time === 2 && unit === 1 ? 4 : perBar;
     this.$('.cp-feedback').textContent = `Dinle: ${clicks} vuruş sayıyorum. Okuma çizgisi ilk notanı duyunca başlar.`;
     let k = 0;
     const tick = () => {
@@ -757,10 +762,10 @@ export class SheetGame {
         this.$('.cp-feedback').textContent = '';
         return this.runTempo();
       }
-      countEl.textContent = (k % time) + 1;
-      playClick(k % time === 0);
+      countEl.textContent = (k % perBar) + 1;
+      playClick(k % perBar === 0);
       k++;
-      this.timer = setTimeout(tick, this.beatMs);
+      this.timer = setTimeout(tick, this.beatMs * unit);
     };
     tick();
   }
@@ -786,7 +791,7 @@ export class SheetGame {
       ? new ClickTrack(
           beatTicks(
             this.events.slice(a, b).map((e, k) => ({ at: starts[a + k], beats: e.beats, stretch: e.fermata ? FERMATA : 1 })),
-            { beatMs: this.beatMs, time: this.ex.time, startPos: this.events[a].pos },
+            { beatMs: this.beatMs, time: this.ex.time, unit: this.ex.beatUnit || 1, startPos: this.events[a].pos },
           ),
         )
       : null;

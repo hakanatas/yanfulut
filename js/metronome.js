@@ -121,12 +121,13 @@ export class Metronome {
  * startPos: ilk olayın ölçü içindeki vuruş konumu. stretch: korona gibi yazılandan uzun tutulan olay için çarpan.
  * @returns [{at, strong}]
  */
-export function beatTicks(events, { beatMs, time = 4, startPos = 0 }) {
+export function beatTicks(events, { beatMs, time = 4, unit = 1, startPos = 0 }) {
   const ticks = [];
   let pos = startPos;
   for (const e of events) {
-    for (let b = Math.ceil(pos - 1e-6); b < pos + e.beats - 1e-6; b++) {
-      ticks.push({ at: e.at + (b - pos) * beatMs * (e.stretch || 1), strong: time > 1 && ((b % time) + time) % time === 0 });
+    // unit: vuruş birimi (dörtlük = 1; 5/8'de sekizlik = 0,5)
+    for (let b = Math.ceil(pos / unit - 1e-6) * unit; b < pos + e.beats - 1e-6; b += unit) {
+      ticks.push({ at: e.at + (b - pos) * beatMs * (e.stretch || 1), strong: time > unit && Math.abs(((b % time) + time) % time) < 1e-6 });
     }
     pos += e.beats;
   }
