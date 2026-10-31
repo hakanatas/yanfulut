@@ -134,6 +134,9 @@ oktav oktav dört satır; sol elin tiz oktavı sol anahtarında. Notalar doğru 
 - **Sınav seçimi:** kitaba elle yazılan altı gam, dinamiğiyle (forte / piano) listenin başında (`EXAM_PICKS`).
 - **İki el:** büyük porte (sağ el üstte, sol el altta). MIDI klavyede iki tuş yarım saniye içinde birlikte beklenir; ekran ve
   mikrofonda biri yeter. Satır okumada doğru notadan sonra beklemeden sıradakine geçilir, hızlı çalışta nota kaçmaz.
+- **Piyanodan komut:** mikrofon ya da MIDI seçiliyken alıştırma çalışmıyorsa aynı tuşa (hangi oktav olursa olsun) iki kez basmak
+  komuttur: **Do Do** başla / tekrar, **Re Re** sonraki alıştırma, **Si Si** önceki. Cevap yolu, metronom ve ipucu seçimleri
+  alıştırmadan alıştırmaya korunur; mikrofon açık kalır. (Nota Okuma adımlarında da geçerli.)
 - **Tempo:** isteğe bağlı metronom (♩ = 60'tan başlar, ±4); sonuçta dakikadaki nota sayısı, düzgünlük ve sınav temposu
   (♩ = 96, her vuruşa iki nota = dakikada 192 nota) gösterilir.
 
