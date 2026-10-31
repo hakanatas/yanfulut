@@ -47,7 +47,7 @@ function breathNoise(ac) {
 }
 
 let timbre = 'flute';
-/** Örnek notaların tınısı: 'flute' ya da 'violin' */
+/** Örnek notaların tınısı: 'flute', 'violin' ya da 'piano' */
 export function setTimbre(name) {
   timbre = name;
 }
@@ -57,6 +57,7 @@ export function setTimbre(name) {
  * @returns {{stop: () => void, done: Promise<void>}}
  */
 export function playNote(noteId, seconds = 1, opts = {}) {
+  if (timbre === 'piano') return playPianoNote(noteId, seconds, opts);
   return timbre === 'violin' ? playViolinNote(noteId, seconds, opts) : playFluteNote(noteId, seconds, opts);
 }
 
@@ -149,6 +150,72 @@ function playViolinNote(noteId, seconds = 1, { volume = 0.22, when = 0 } = {}) {
       sources.forEach((src) => {
         try {
           src.stop(now + 0.07);
+        } catch {
+          /* zaten durmuş */
+        }
+      });
+    },
+  };
+}
+
+/** Piyano benzeri tını: vuruşla başlayan, kendiliğinden sönen sesler (üst partiler daha hızlı söner) */
+function playPianoNote(noteId, seconds = 1, { volume = 0.3, when = 0 } = {}) {
+  const ac = audioContext();
+  const freq = freqOf(noteId);
+  const t0 = ac.currentTime + 0.02 + when;
+  const decay = Math.max(0.6, Math.min(3.2, 900 / freq)); // pes notalar daha uzun çınlar
+  const t1 = t0 + Math.min(seconds, decay * 1.6);
+  const endAppSound = beginAppSound((when + (t1 - t0)) * 1000);
+  const out = ac.createGain();
+  out.gain.value = volume;
+  out.connect(ac.destination);
+  const partials = [
+    [1, 1, 1],
+    [2, 0.45, 0.7],
+    [3, 0.22, 0.5],
+    [4, 0.12, 0.35],
+    [5, 0.06, 0.25],
+  ];
+  const oscs = partials.map(([mult, amp, life]) => {
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq * mult * (1 + 0.0004 * mult * mult); // tellerin hafif uyumsuzluğu
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(amp, t0 + 0.006);
+    g.gain.setTargetAtTime(0, t0 + 0.006, decay * life * 0.35);
+    g.gain.setValueAtTime(g.gain.value, Math.max(t0 + 0.01, t1 - 0.06));
+    g.gain.linearRampToValueAtTime(0, t1);
+    o.connect(g).connect(out);
+    return o;
+  });
+  // Çekiç vuruşu
+  const noise = breathNoise(ac);
+  const hp = ac.createBiquadFilter();
+  hp.type = 'bandpass';
+  hp.frequency.value = Math.min(4000, freq * 4);
+  const ng = ac.createGain();
+  ng.gain.setValueAtTime(0.12, t0);
+  ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.04);
+  noise.connect(hp).connect(ng).connect(out);
+  const sources = [...oscs, noise];
+  sources.forEach((s) => s.start(t0));
+  noise.stop(t0 + 0.06);
+  oscs.forEach((s) => s.stop(t1 + 0.02));
+  let resolve;
+  const done = new Promise((r) => (resolve = r));
+  oscs[0].onended = () => resolve();
+  return {
+    done,
+    stop() {
+      endAppSound();
+      const now = ac.currentTime;
+      out.gain.cancelScheduledValues(now);
+      out.gain.setValueAtTime(out.gain.value, now);
+      out.gain.linearRampToValueAtTime(0, now + 0.12); // tuş bırakılınca söner
+      sources.forEach((s) => {
+        try {
+          s.stop(now + 0.13);
         } catch {
           /* zaten durmuş */
         }

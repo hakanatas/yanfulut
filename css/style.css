@@ -801,3 +801,60 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
   /* transition: none — 0,01 ms'lik geçiş bile her stil değişikliğini bir kare geciktirip yerleşimi oynatıyordu */
   *, *::before, *::after { animation-duration: 0.01ms !important; transition: none !important; }
 }
+
+/* ------------------------------------------------------------- piyano klavyesi */
+.kb { display: block; width: 100%; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+.kb .key rect { stroke: var(--ink); stroke-width: 2; }
+.kb .key.white rect { fill: #fffdf8; }
+.kb .key.black rect { fill: #2c2a35; }
+.kb-live .key { cursor: pointer; }
+.kb .key.white.down rect { fill: var(--sun-soft); }
+.kb .key.black.down rect { fill: #5a5670; }
+.kb .key.marked.white rect { fill: color-mix(in srgb, var(--coral) 35%, #fffdf8); }
+.kb .key.marked.black rect { fill: var(--coral); }
+.kb .key.ok.white rect, .kb .key.ok.black rect { fill: var(--teal); }
+.kb .key.wrong.white rect, .kb .key.wrong.black rect { fill: var(--coral); }
+.kb .key.hint rect { animation: key-hint 0.8s ease-in-out infinite alternate; }
+@keyframes key-hint { from { fill: #fffdf8; } to { fill: var(--sun); } }
+.kb .key-label { font-size: 15px; font-weight: 700; fill: var(--ink-on-white, #2c2a35); }
+.kb .mid-c-dot { fill: var(--coral); }
+.kb-wrap { overflow-x: auto; padding: 4px 0 8px; }
+.kb-wrap .kb { min-width: min(560px, 100%); margin: 0 auto; }
+/* Seçili (basılı) düz düğmeler: koyu zemin, açık yazı */
+.chip-btn.standalone.active { background: var(--ink); color: var(--paper); border-style: solid; }
+.mini-keyboard { max-width: 340px; margin: 8px auto; }
+.chart-detail .mini-keyboard { max-width: 420px; }
+.kb-intro { max-width: 620px; margin: 6px auto; }
+
+/* ------------------------------------------------------------- nota okuma */
+.rd-intro { margin: 12px 0; padding: 12px 16px; }
+.rd-intro summary { cursor: pointer; font-size: 1.1rem; }
+.rd-intro-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: center; }
+.rd-intro-body ul { margin: 8px 0; padding-left: 20px; display: grid; gap: 6px; }
+.rd-intro-visual:empty { display: none; }
+.rd-intro-staff { width: 100%; max-width: 420px; height: auto; display: block; margin: 0 auto; }
+.rd-stage { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: center; margin: 12px 0; }
+.rd-board { min-height: 180px; display: grid; place-items: center; }
+.rd-staff-svg { width: 100%; max-width: 640px; height: auto; display: block; }
+.rd-row-tag { font-weight: 700; justify-self: start; }
+.rd-label { font-size: 15px; font-weight: 700; fill: var(--muted); }
+.rd-note.current .head-g, .rd-note.current .paper { stroke: var(--coral); }
+.rd-note.current .ink { stroke: var(--coral); }
+.rd-note.ok .ink { stroke: var(--teal); }
+.rd-note.wrong .ink { stroke: var(--coral); }
+.rd-note.ok .rd-label { fill: var(--teal); }
+.rd-find { display: grid; place-items: center; gap: 4px; }
+.rd-find b { font-size: clamp(3rem, 12vw, 5.5rem); line-height: 1; }
+.rd-progress { font-size: 1.2rem; }
+.rd-feedback { min-height: 3em; font-weight: 600; }
+.rd-names { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+.rd-names .pad-key { min-width: 70px; }
+@media (max-width: 720px) {
+  .rd-intro-body, .rd-stage { grid-template-columns: 1fr; }
+  /* Cevap yolları dar ekranda 2×2 */
+  .reading .drill-options .seg-group { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .reading .drill-options .seg-group .chip-btn { border-left: none; border-top: 2px solid var(--ink); }
+  .reading .drill-options .seg-group .chip-btn:nth-child(-n + 2) { border-top: none; }
+  .reading .drill-options .seg-group .chip-btn:nth-child(2n) { border-left: 2px solid var(--ink); }
+  .rd-board { min-height: 140px; }
+}

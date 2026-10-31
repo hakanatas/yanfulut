@@ -6,6 +6,7 @@ import { LessonPlayer } from './player.js';
 import { DotsGame } from './dots.js';
 import { DrillGame } from './drill.js';
 import { SheetGame } from './sheet.js';
+import { ReadingGame, readingKind } from './reading.js';
 import { progress } from './progress.js';
 import { playNote, PitchListener, micErrorMessage, SILENT_MIC_MESSAGE, tuningOffset, resetTuning, setTuning } from './audio.js';
 import { fingeringSvg, staffSvg, h } from './checkpoints.js';
@@ -19,13 +20,15 @@ let COURSE = [];
 const lessonById = (id) => instrument().lessons.find((l) => l.id === id);
 const songById = (id) => instrument().songs.find((s) => s.id === id);
 const drillById = (id) => instrument().drills.find((d) => d.id === id);
+const readingById = (id) => (instrument().readings || []).find((r) => r.id === id);
 const worksheetList = () => (instrument().worksheets || []).flatMap((u) => u.exercises.map((e) => ({ ...e, unit: u })));
 const worksheetById = (id) => worksheetList().find((e) => e.id === id);
 
-const starsOf = (item) => (item.type === 'drill' ? progress.songStars(`drill-${item.id}`) : item.type === 'song' ? progress.songStars(item.id) : 0);
+const starsOf = (item) =>
+  item.type === 'drill' ? progress.songStars(`drill-${item.id}`) : item.type === 'reading' ? progress.songStars(`read-${item.id}`) : item.type === 'song' ? progress.songStars(item.id) : 0;
 const isDone = (item) => (item.type === 'lesson' ? progress.isLessonDone(item.id) : starsOf(item) > 0);
-const itemData = (item) => ({ lesson: lessonById, song: songById, drill: drillById })[item.type](item.id);
-const itemHref = (item) => ({ lesson: '#/ders/', song: '#/sarki/', drill: '#/antrenman/' })[item.type] + item.id;
+const itemData = (item) => ({ lesson: lessonById, song: songById, drill: drillById, reading: readingById })[item.type](item.id);
+const itemHref = (item) => ({ lesson: '#/ders/', song: '#/sarki/', drill: '#/antrenman/', reading: '#/okuma/' })[item.type] + item.id;
 
 function route() {
   active?.destroy();
@@ -37,6 +40,7 @@ function route() {
   if (page === 'ders' && lessonById(id)) return showLesson(lessonById(id));
   if (page === 'sarki' && songById(id)) return showSong(songById(id));
   if (page === 'antrenman' && drillById(id)) return showDrill(drillById(id));
+  if (page === 'okuma' && readingById(id)) return showReading(readingById(id));
   if (page === 'antrenman') return showDrillList();
   if (page === 'egzersiz' && instrument().worksheets) {
     const ex = worksheetById(id);
@@ -76,9 +80,9 @@ function showHome() {
     const data = itemData(item);
     const done = isDone(item);
     const stars = starsOf(item);
-    const icon = { song: '★', drill: '♩', lesson: done ? '✓' : '♪' }[item.type];
-    const kind = { song: 'Nota Noktaları', drill: 'Antrenman', lesson: `Ders ${COURSE.slice(0, i + 1).filter((c) => c.type === 'lesson').length}` }[item.type];
-    const sub = { song: data.level, drill: data.focus, lesson: data.summary }[item.type];
+    const icon = { song: '★', drill: '♩', reading: data.mode === 'find' ? '🎹' : data.mode === 'line' ? '♫' : data.clef === 'bass' ? '𝄢' : '𝄞', lesson: done ? '✓' : '♪' }[item.type];
+    const kind = { song: 'Nota Noktaları', drill: 'Antrenman', reading: item.type === 'reading' && readingKind(data), lesson: `Ders ${COURSE.slice(0, i + 1).filter((c) => c.type === 'lesson').length}` }[item.type];
+    const sub = { song: data.level, drill: data.focus, reading: data.focus, lesson: data.summary }[item.type];
     const li = h(`
       <li class="node ${item.type} ${done ? 'done' : ''} ${i === nextIdx ? 'next' : ''}">
         <a href="${itemHref(item)}">
@@ -159,6 +163,22 @@ function showSong(song) {
     </section>`);
   view.appendChild(page);
   active = new DotsGame(page.querySelector('.game-host'), song);
+}
+
+// --------------------------------------------------------------------- Nota Okuma
+function showReading(set) {
+  const sets = COURSE.filter((c) => c.type === 'reading').map((c) => readingById(c.id));
+  const k = sets.findIndex((s) => s.id === set.id);
+  const link = (s) => s && { href: `#/okuma/${s.id}`, title: s.title };
+  const nav = { prev: link(sets[k - 1]), next: link(sets[k + 1]) };
+  view.innerHTML = '';
+  const page = h(`
+    <section class="drill-page">
+      <div class="page-head"><a class="back" href="#/">← Ders yolu</a>${pagerHtml(nav, 'alıştırma', k, sets.length)}</div>
+      <div class="game-host"></div>
+    </section>`);
+  view.appendChild(page);
+  active = new ReadingGame(page.querySelector('.game-host'), set, { nav });
 }
 
 // --------------------------------------------------------------------- Antrenman
