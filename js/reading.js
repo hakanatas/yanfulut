@@ -9,12 +9,18 @@ import { clefStep, longName, midiOf, noteFromMidi, parseNote } from './data/note
 import { PitchListener, playNote, playChime, micErrorMessage, SILENT_MIC_MESSAGE } from './audio.js';
 import { h } from './checkpoints.js';
 import { navButtons } from './drill.js';
+import { Metronome, clampBpm } from './metronome.js';
 import { createKeyboard, keyboardRange, keyboardSvg } from './keyboard.js';
 import { progress } from './progress.js';
 
 const PC_NAMES = { C: 'Do', D: 'Re', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Si' };
 const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const pcOf = (m) => ((m % 12) + 12) % 12;
+/** Portedeki ipucu adı: "Mi♭", "Fa♯", "Do" (oktav işareti yok) */
+const noteLabel = (n) => {
+  const { letter, alter } = parseNote(n);
+  return PC_NAMES[letter] + (alter > 0 ? '♯' : alter < 0 ? '♭' : '');
+};
 const letterPc = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 const shuffle = (a) => {
   for (let i = a.length - 1; i > 0; i--) {
@@ -30,8 +36,16 @@ const shuffle = (a) => {
  * Notalar birlik (içi boş) çizilir: süre yok, yalnızca yükseklik okunur.
  */
 export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = null, cls = 'rd-staff-svg' }) {
-  const top = sp * 4.6;
+  // Yükseklik notalara göre: porte dışındaki notalar (ek çizgiler) ve parmak numaraları için yer açılır
+  const steps = notes.map((n) => clefStep(n.note, clef));
+  const maxStep = Math.max(8, ...steps);
+  const minStep = Math.min(0, ...steps);
+  const fingers = notes.some((n) => n.finger);
+  const top = Math.max(sp * 3.4, sp * (2.2 + (maxStep - 8) / 2) + (fingers ? sp * 1.4 : 0));
   const bottom = top + sp * 4;
+  const below = bottom + sp * (1.6 + -minStep / 2); // en alttaki notanın altı
+  const labelY = below + sp * 1.6;
+  const height = labelY + sp * (notes.some((n) => n.label) ? 1.2 : 0.2);
   const x0 = sp * 6.2;
   const gap = sp * 4.2;
   const w = width || Math.max(sp * 16, x0 + notes.length * gap + sp * 2);
@@ -45,7 +59,7 @@ export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = nul
   notes.forEach((n, i) => {
     const cx = x0 + i * gap + gap / 2;
     const cy = yOf(n.note);
-    const step = clefStep(n.note, clef);
+    const step = steps[i];
     let g = '';
     const ledger = (k) => `<line x1="${cx - sp * 1.15}" y1="${bottom - (k * sp) / 2}" x2="${cx + sp * 1.15}" y2="${bottom - (k * sp) / 2}" class="ink thin"/>`;
     for (let k = -2; k >= step; k -= 2) g += ledger(k);
@@ -53,11 +67,12 @@ export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = nul
     const { alter } = parseNote(n.note);
     if (alter) g += `<text x="${cx - sp * 1.6}" y="${cy + sp * 0.7}" font-size="${sp * 2.6}" text-anchor="middle" class="clef ink-fill">${alter > 0 ? '♯' : '♭'}</text>`;
     g += noteSymbol(cx, cy, sp, 'whole');
-    if (n.state === 'current') g = `<rect x="${cx - sp * 1.7}" y="${top - sp * 3.4}" width="${sp * 3.4}" height="${sp * 11.6}" rx="10" class="drill-hl"/>` + g;
-    const label = n.label ? `<text x="${cx}" y="${bottom + sp * 5.2}" text-anchor="middle" class="rd-label">${n.label}</text>` : '';
-    out += `<g class="rd-note ${n.state || ''}">${g}${label}</g>`;
+    if (n.state === 'current') g = `<rect x="${cx - sp * 1.7}" y="3" width="${sp * 3.4}" height="${height - 6}" rx="10" class="drill-hl"/>` + g;
+    const label = n.label ? `<text x="${cx}" y="${labelY}" text-anchor="middle" class="rd-label">${n.label}</text>` : '';
+    // Parmak numarası: notanın (ve ek çizgilerin) üstünde
+    const finger = n.finger ? `<text x="${cx}" y="${Math.max(sp, Math.min(top - sp * 0.9, cy - sp * 1.5))}" text-anchor="middle" class="rd-finger">${n.finger}</text>` : '';
+    out += `<g class="rd-note ${n.state || ''}">${g}${label}${finger}</g>`;
   });
-  const height = bottom + sp * 6;
   return `<svg class="${cls}" viewBox="0 0 ${w} ${height}" role="img" aria-label="${clef === 'bass' ? 'Fa' : 'Sol'} anahtarlı porte">${out}</svg>`;
 }
 
@@ -65,7 +80,7 @@ export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = nul
 function introVisual(v) {
   if (!v) return '';
   if (v.type === 'keyboard') return keyboardSvg({ from: v.from || 'C4', to: v.to || 'B4', marked: v.marked || [], labels: v.labels, cls: 'kb kb-intro' });
-  if (v.type === 'staff') return readingStaff({ clef: v.clef, notes: v.notes.map((n) => ({ note: n, label: v.labels === false ? '' : PC_NAMES[parseNote(n).letter] })), sp: 11, cls: 'rd-intro-staff' });
+  if (v.type === 'staff') return readingStaff({ clef: v.clef, notes: v.notes.map((n) => ({ note: n, label: v.labels === false ? '' : noteLabel(n) })), sp: 11, cls: 'rd-intro-staff' });
   return '';
 }
 
@@ -100,6 +115,8 @@ export class ReadingGame {
   constructor(root, set, { nav = {} } = {}) {
     Object.assign(this, { root, set, nav });
     this.input = 'keys';
+    this.bpm = set.bpm || 60; // isteğe bağlı metronom
+    this.metroOn = false;
     this.labels = false; // tuş adları
     this.hintNames = false; // portedeki notanın adı
     this.render();
@@ -114,7 +131,7 @@ export class ReadingGame {
   /** Bütün notalar (klavye aralığı ve nota adı düğmeleri için) */
   allNotes() {
     const s = this.set;
-    if (s.mode === 'line') return s.rows.flatMap((r) => (typeof r === 'string' ? r : r.notes).split(/\s+/));
+    if (s.mode === 'line') return s.rows.flatMap((r) => (typeof r === 'string' ? r : `${r.notes} ${r.partner || ''}`).trim().split(/\s+/));
     if (s.mode === 'find') return [];
     return Object.values(s.pools || { [s.clef]: s.pool }).flat();
   }
@@ -144,10 +161,14 @@ export class ReadingGame {
           </div>
           <button class="chip-btn standalone" data-act="labels" aria-pressed="false">🏷️ Tuş adları</button>
           ${s.mode === 'find' ? '' : '<button class="chip-btn standalone" data-act="hint" aria-pressed="false">💡 Nota adını göster</button>'}
+          ${s.metronome ? `<div class="tempo-ctl rd-metro">
+            <button class="chip-btn standalone" data-act="metro" aria-pressed="false">🥁 Metronom</button>
+            <div class="seg-group" role="group" aria-label="Metronom temposu"><button class="chip-btn" data-mstep="-4" aria-label="Yavaşlat">−</button><span class="tempo-val rd-bpm"></span><button class="chip-btn" data-mstep="4" aria-label="Hızlandır">+</button></div>
+          </div>` : ''}
           <button class="btn primary" data-act="start">▶ Başla</button>
           <button class="btn ghost" data-act="reset">↺ Baştan</button>
         </div>
-        <div class="rd-stage card">
+        <div class="rd-stage card ${s.mode === 'line' && Math.max(...s.rows.map((r) => (typeof r === 'string' ? r : r.notes).split(/\s+/).length)) > 8 ? 'wide' : ''}">
           <div class="rd-board"></div>
           <div class="rd-side">
             <div class="rd-progress"><b class="rd-count"></b><span class="rd-score muted"></span></div>
@@ -172,6 +193,15 @@ export class ReadingGame {
       if (!b) return;
       if (b.dataset.input) this.setInput(b.dataset.input);
       else if (b.dataset.act === 'start') this.start();
+      else if (b.dataset.act === 'metro') {
+        this.metroOn = !this.metroOn;
+        this.updateButtons();
+        if (this.running) this.metroOn ? this.startMetro() : this.metro?.stop();
+      } else if (b.dataset.mstep) {
+        this.bpm = clampBpm(this.bpm + Number(b.dataset.mstep));
+        this.metro?.setBpm(this.bpm);
+        this.updateButtons();
+      }
       else if (b.dataset.act === 'reset') this.reset();
       else if (b.dataset.act === 'labels') {
         this.labels = !this.labels;
@@ -218,6 +248,13 @@ export class ReadingGame {
     hint?.classList.toggle('active', this.hintNames);
     hint?.setAttribute('aria-pressed', this.hintNames);
     this.$('.rd-names').hidden = this.input !== 'names';
+    const metro = this.el.querySelector('[data-act=metro]');
+    if (metro) {
+      metro.classList.toggle('active', this.metroOn);
+      metro.setAttribute('aria-pressed', this.metroOn);
+      metro.textContent = this.metroOn ? '🥁 Metronom açık' : '🥁 Metronom';
+      this.$('.rd-bpm').textContent = `♩ = ${this.bpm}`;
+    }
   }
 
   setInput(input) {
@@ -240,8 +277,9 @@ export class ReadingGame {
     }
     if (s.mode === 'line') {
       return s.rows.flatMap((r, row) => {
-        const { clef, notes } = typeof r === 'string' ? { clef: s.clef, notes: r } : r;
-        return notes.split(/\s+/).map((note, col) => ({ note, clef, row, col }));
+        const { clef, notes, fingers, partner, partnerFingers, partnerClef } = typeof r === 'string' ? { clef: s.clef, notes: r } : r;
+        const partners = partner?.split(/\s+/);
+        return notes.split(/\s+/).map((note, col) => ({ note, clef, row, col, finger: fingers?.[col], partner: partners?.[col], partnerFinger: partnerFingers?.[col], partnerClef }));
       });
     }
     const pools = s.pools || { [s.clef]: s.pool };
@@ -304,14 +342,19 @@ export class ReadingGame {
     if (this.set.mode === 'line') {
       const row = this.questions.filter((x) => x.row === q.row);
       const base = this.questions.indexOf(row[0]);
-      notes = row.map((x, k) => {
-        const idx = base + k;
-        const state = idx === this.i && this.running ? 'current' : this.results[idx] === 'ok' ? 'ok' : this.results[idx] === 'retry' ? 'wrong' : '';
-        const label = this.hintNames || (this.results[idx] && idx < this.i) ? PC_NAMES[parseNote(x.note).letter] : '';
-        return { note: x.note, state, label };
-      });
+      const stateOf = (idx) => (idx === this.i && this.running ? 'current' : this.results[idx] === 'ok' ? 'ok' : this.results[idx] === 'retry' ? 'wrong' : '');
+      const nameOf = (n, idx) => (this.hintNames || (this.results[idx] && idx < this.i) ? noteLabel(n) : '');
+      notes = row.map((x, k) => ({ note: x.note, state: stateOf(base + k), label: nameOf(x.note, base + k), finger: x.finger }));
+      if (q.partner) {
+        // İki el: sağ el üstte, sol el altta (fa anahtarı; tiz oktavda sol anahtarı), notalar hizalı
+        const lh = row.map((x, k) => ({ note: x.partner, state: stateOf(base + k), label: nameOf(x.partner, base + k), finger: x.partnerFinger }));
+        board.innerHTML = `<div class="rd-grand">${readingStaff({ clef: 'treble', notes, sp: 12 })}${readingStaff({ clef: q.partnerClef || 'bass', notes: lh, sp: 12 })}</div>`;
+        const rows = new Set(this.questions.map((x) => x.row)).size;
+        board.insertAdjacentHTML('afterbegin', `<div class="rd-row-tag muted">${q.row + 1}. satır / ${rows} · iki el</div>`);
+        return;
+      }
     } else {
-      notes = [{ note: q.note, state: this.running ? 'current' : '', label: this.hintNames ? PC_NAMES[parseNote(q.note).letter] : '' }];
+      notes = [{ note: q.note, state: this.running ? 'current' : '', label: this.hintNames ? noteLabel(q.note) : '' }];
     }
     board.innerHTML = readingStaff({ clef, notes, sp: this.set.mode === 'line' ? 13 : 16, width: this.set.mode === 'line' ? null : 330 });
     if (this.set.mode === 'line') {
@@ -354,12 +397,22 @@ export class ReadingGame {
     this.running = true;
     this.el.classList.add('running');
     this.askedAt = performance.now();
+    this.hits = [];
+    if (this.metroOn) this.startMetro();
     this.draw();
     this.$('.rd-feedback').textContent = this.set.mode === 'line' ? 'Soldan sağa oku: işaretli notayı çal.' : '';
     this.$('.rd-stage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  /** Metronom: mikrofonla çalışırken perdesiz tık (nota sanılmasın) */
+  startMetro() {
+    this.metro?.stop();
+    this.metro = new Metronome({ bpm: this.bpm, beats: 4, soft: this.input === 'mic' });
+    this.metro.start();
+  }
+
   stop() {
+    this.metro?.stop();
     this.running = false;
     this.el?.classList.remove('running');
     this.listener?.stop();
@@ -417,22 +470,40 @@ export class ReadingGame {
     const target = q.note ? midiOf(q.note) : null;
     let ok;
     let msg = '';
+    if (q.partner && a.midi != null) {
+      // İki el: MIDI'de iki tuş da (yarım saniye içinde) basılmalı; ekran ve mikrofonda biri yeter
+      const partner = midiOf(q.partner);
+      if (a.midi === target || a.midi === partner) {
+        if (this.input === 'midi') {
+          const now = performance.now();
+          this.chord = (this.chord || []).filter((c) => now - c.at < 500);
+          this.chord.push({ m: a.midi, at: now });
+          const got = new Set(this.chord.map((c) => c.m));
+          if (!(got.has(target) && got.has(partner))) return; // öbür eli bekle
+          this.chord = [];
+        }
+        a = { midi: target };
+      }
+    }
     if (a.letter) ok = a.letter === targetLetter; // nota adıyla cevap: oktav sorulmaz
     else if (!q.note) ok = pcOf(a.midi) === letterPc[targetLetter]; // klavyede bul: her oktav doğru
     else ok = a.midi === target;
     if (ok) {
       if (!this.tries) this.times.push(performance.now() - this.askedAt);
+      this.hits?.push(performance.now());
       this.results[this.i] = this.tries ? 'retry' : 'ok';
       if (a.midi != null) this.kb.flash(a.midi, 'ok');
       fb.textContent = this.tries ? `✓ Evet, ${q.note ? longName(q.note) : PC_NAMES[targetLetter]}.` : `✓ Doğru: ${q.note ? longName(q.note) : PC_NAMES[targetLetter]}!`;
       if (a.letter && q.note) playNote(q.note, 0.8);
       this.kb.clear();
       this.tries = 0;
+      // Satır okumada (gamlar) hemen sonraki notaya geç: hızlı çalarken hiçbir nota kaçmasın
+      if (this.set.mode === 'line') return this.next();
       this.locked = true;
       this.nextTimer = setTimeout(() => {
         this.locked = false;
         this.next();
-      }, this.set.mode === 'line' ? 250 : 550);
+      }, 550);
       return;
     }
     this.tries++;
@@ -469,6 +540,7 @@ export class ReadingGame {
   }
 
   finish() {
+    this.metro?.stop();
     this.running = false;
     this.el.classList.remove('running');
     this.listener?.stop();
@@ -496,6 +568,16 @@ export class ReadingGame {
       .map((k) => (k.length === 1 ? PC_NAMES[k] : longName(k)));
     this.updateCount();
     this.draw();
+    // Gamlarda hız ve düzgünlük: doğru notalar arasındaki süreler
+    let pace = '';
+    if (this.set.metronome && this.hits?.length > 4) {
+      const gaps = this.hits.slice(1).map((t, k) => t - this.hits[k]);
+      const mean = gaps.reduce((x, y) => x + y, 0) / gaps.length;
+      const sd = Math.sqrt(gaps.reduce((x, g) => x + (g - mean) ** 2, 0) / gaps.length);
+      const even = Math.max(0, Math.round(100 - (sd / mean) * 100));
+      const exam = this.set.examBpm ? ` Sınav temposu ♩ = ${this.set.examBpm}, her vuruşa iki nota: dakikada ${this.set.examBpm * 2} nota.` : '';
+      pace = `<p class="rd-pace">🎵 Hız: dakikada yaklaşık <b>${Math.round(60000 / mean)}</b> nota${this.metroOn ? ` (metronom ♩ = ${this.bpm})` : ''} · düzgünlük <b>%${even}</b>${even < 70 ? ' — notalar arasındaki süreleri eşitlemeye çalış' : ''}.${exam}</p>`;
+    }
     const res = this.$('.drill-result');
     res.hidden = false;
     res.innerHTML = `
@@ -504,6 +586,7 @@ export class ReadingGame {
       <div class="ws-score"><span class="big">%${pct}</span><small>ilk denemede doğru</small></div>
       <p>${n} sorunun ${ok} tanesini ilk denemede bildin${avg ? `; ortalama ${avg} saniyede` : ''}.
         ${hard.length ? `Zorlandığın notalar: <b>${hard.join(', ')}</b>. Bunlara tekrar bak.` : 'Hiç takılmadın, harika!'}</p>
+      ${pace}
       ${navButtons(this.nav, 'alıştırma')}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start());
     res.scrollIntoView({ behavior: 'smooth', block: 'center' });

@@ -123,7 +123,19 @@ fa anahtarı (pes Sol'den orta Do'ya) ve iki anahtar karışık. Her adımın ü
 - **Geri bildirim:** yanlışta hedefin yukarıda mı aşağıda mı olduğu, doğru nota yanlış oktav uyarısı; iki yanlıştan sonra doğru tuş
   yanıp söner. Sonuçta ilk denemede doğru yüzdesi, ortalama süre ve zorlanılan notalar; yıldızlar ilerlemeye kaydedilir.
 - **Porte:** sol (𝄞) ve fa (𝄢) anahtarı (`clefStep`), ek çizgiler; ipucu olarak nota adı gösterilebilir, klavyede tuş adları açılabilir.
-- Video dersler, şarkılar ve iki elle çalma sonraki adımda.
+- Video dersler ve şarkılar sonraki adımda.
+
+### Gamlar: Trinity Grade 3 (`#/gamlar`, `js/piano/scales.js`)
+
+Sınav kitabındaki (s. 5–8) gamlar, parmak numaralarıyla: Mi, Si, Si♭, Mi♭, La♭, Re♭ majör; Si, Sol, Do, Fa armonik ve melodik
+minör (sağ el, sol el, iki el birlikte); zıt yönde Sol, Re majör ve La armonik minör. Hepsi iki oktav (29 nota), kitaptaki gibi
+oktav oktav dört satır; sol elin tiz oktavı sol anahtarında. Notalar doğru yazılır (Mi♯, La♭…), satırlar `spell()` ile üretilir.
+
+- **Sınav seçimi:** kitaba elle yazılan altı gam, dinamiğiyle (forte / piano) listenin başında (`EXAM_PICKS`).
+- **İki el:** büyük porte (sağ el üstte, sol el altta). MIDI klavyede iki tuş yarım saniye içinde birlikte beklenir; ekran ve
+  mikrofonda biri yeter. Satır okumada doğru notadan sonra beklemeden sıradakine geçilir, hızlı çalışta nota kaçmaz.
+- **Tempo:** isteğe bağlı metronom (♩ = 60'tan başlar, ±4); sonuçta dakikadaki nota sayısı, düzgünlük ve sınav temposu
+  (♩ = 96, her vuruşa iki nota = dakikada 192 nota) gösterilir.
 
 ## Çalıştırma
 
