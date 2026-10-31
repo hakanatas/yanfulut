@@ -22,6 +22,13 @@ const noteLabel = (n) => {
   return PC_NAMES[letter] + (alter > 0 ? '♯' : alter < 0 ? '♭' : '');
 };
 const letterPc = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+// Alıştırmadan alıştırmaya geçerken seçimler korunur (cevap yolu, metronom, ipuçları)
+const prefs = {};
+// Piyanodan komut (alıştırma çalışmıyorken aynı tuşa iki kez bas, hangi oktav olursa olsun)
+const COMMANDS = { 0: 'start', 2: 'next', 11: 'prev' }; // Do: başla / tekrar · Re: sonraki · Si: önceki
+const DOUBLE_MS = 1300;
+export const PIANO_COMMANDS_HTML = '🎹 Piyanodan: <b>Do Do</b> başla / tekrar · <b>Re Re</b> sonraki · <b>Si Si</b> önceki';
 const shuffle = (a) => {
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -114,18 +121,26 @@ async function listenMidi(onNote) {
 export class ReadingGame {
   constructor(root, set, { nav = {} } = {}) {
     Object.assign(this, { root, set, nav });
-    this.input = 'keys';
-    this.bpm = set.bpm || 60; // isteğe bağlı metronom
-    this.metroOn = false;
-    this.labels = false; // tuş adları
-    this.hintNames = false; // portedeki notanın adı
+    this.input = prefs.input || 'keys';
+    this.bpm = (set.metronome && prefs.bpm) || set.bpm || 60; // isteğe bağlı metronom
+    this.metroOn = !!(set.metronome && prefs.metroOn);
+    this.labels = !!prefs.labels; // tuş adları
+    this.hintNames = !!prefs.hintNames; // portedeki notanın adı
     this.render();
     this.reset();
+    if (this.input === 'mic' || this.input === 'midi') this.listen();
   }
 
   destroy() {
+    this.closed = true;
     this.stop();
+    this.close();
     this.kb?.destroy();
+  }
+
+  savePrefs() {
+    Object.assign(prefs, { input: this.input, labels: this.labels, hintNames: this.hintNames });
+    if (this.set.metronome) Object.assign(prefs, { metroOn: this.metroOn, bpm: this.bpm });
   }
 
   /** Bütün notalar (klavye aralığı ve nota adı düğmeleri için) */
@@ -240,6 +255,7 @@ export class ReadingGame {
   }
 
   updateButtons() {
+    this.savePrefs();
     this.el.querySelectorAll('[data-input]').forEach((b) => b.classList.toggle('active', b.dataset.input === this.input));
     const lab = this.el.querySelector('[data-act=labels]');
     lab.classList.toggle('active', this.labels);
@@ -258,9 +274,11 @@ export class ReadingGame {
   }
 
   setInput(input) {
+    this.close();
     this.input = input;
     this.reset();
     this.updateButtons();
+    if (input === 'mic' || input === 'midi') this.listen();
   }
 
   /** Soru listesi: [{note?, letter?, clef, row?, col?}] */
@@ -308,6 +326,10 @@ export class ReadingGame {
     this.renderStars(progress.songStars(`read-${this.set.id}`));
     this.draw();
     this.updateCount();
+    if (this.listener || this.midi) {
+      this.$('.mic-status').innerHTML = `${this.input === 'mic' ? 'Mikrofon açık.' : 'MIDI klavye bağlı.'} ${PIANO_COMMANDS_HTML}`;
+      return;
+    }
     this.$('.mic-status').textContent = {
       keys: '"Başla"ya bas, sonra notayı ekrandaki klavyede bul.',
       mic: '"Başla"ya bas, mikrofon açılsın; notayı piyanonda çal.',
@@ -365,32 +387,9 @@ export class ReadingGame {
 
   async start() {
     this.reset();
-    if (this.input === 'mic') {
-      const status = this.$('.mic-status');
-      const level = this.$('.level');
-      let silent = false;
-      this.listener = new PitchListener((f) => this.onFrame(f, level, () => silent), { onStatus: (st) => (silent = st === 'silent') });
-      try {
-        status.textContent = 'Mikrofon açılıyor…';
-        await this.listener.start();
-        level.hidden = false;
-        status.textContent = 'Dinliyorum… Notayı piyanonda çal.';
-      } catch (err) {
-        status.textContent = `${micErrorMessage(err)} Şimdilik ekrandaki klavyeyi kullanabilirsin.`;
-        this.listener = null;
-        return;
-      }
-    } else if (this.input === 'midi') {
-      try {
-        this.midi = await listenMidi((m) => {
-          this.kb.show(m);
-          if (this.running) this.answer({ midi: m });
-        });
-        this.$('.mic-status').textContent = this.midi.count ? 'MIDI klavye bağlı. Notayı çal.' : 'MIDI klavye bulunamadı: kabloyu tak, birkaç saniye bekle ve bir tuşa bas.';
-      } catch (err) {
-        this.$('.mic-status').textContent = `${err.message || err}`;
-        return;
-      }
+    if (this.input === 'mic' || this.input === 'midi') {
+      if (!(await this.listen())) return;
+      this.$('.mic-status').textContent = this.input === 'mic' ? 'Dinliyorum… Notayı piyanonda çal.' : 'MIDI klavye bağlı. Notayı çal.';
     } else {
       this.$('.mic-status').textContent = this.input === 'names' ? 'Notanın adını aşağıdaki düğmelerden seç.' : 'Notayı ekrandaki klavyede bul ve bas.';
     }
@@ -404,6 +403,79 @@ export class ReadingGame {
     this.$('.rd-stage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  /**
+   * Mikrofonu ya da MIDI'yi aç (açıksa dokunma). Alıştırma çalışmıyorken de dinler: aynı tuşa iki kez basmak komuttur.
+   * @returns {Promise<boolean>} dinleniyor mu
+   */
+  listen() {
+    if (this.listening) return this.listening;
+    const status = this.$('.mic-status');
+    const ready = () => {
+      if (this.running || this.closed) return;
+      status.innerHTML = `${this.input === 'mic' ? 'Mikrofon açık.' : 'MIDI klavye bağlı.'} ${PIANO_COMMANDS_HTML}`;
+    };
+    this.listening = (async () => {
+      if (this.input === 'mic') {
+        const level = this.$('.level');
+        let silent = false;
+        const listener = new PitchListener((f) => this.onFrame(f, level, () => silent), { onStatus: (st) => (silent = st === 'silent') });
+        try {
+          status.textContent = 'Mikrofon açılıyor…';
+          await listener.start();
+        } catch (err) {
+          status.textContent = `${micErrorMessage(err)} Şimdilik ekrandaki klavyeyi kullanabilirsin.`;
+          this.listening = null;
+          return false;
+        }
+        if (this.closed || this.input !== 'mic') return listener.stop(), false;
+        this.listener = listener;
+        level.hidden = false;
+        ready();
+        return true;
+      }
+      try {
+        const midi = await listenMidi((m) => this.onNote(m));
+        if (this.closed || this.input !== 'midi') return midi.stop(), false;
+        this.midi = midi;
+        if (midi.count) ready();
+        else status.textContent = 'MIDI klavye bulunamadı: kabloyu tak, birkaç saniye bekle ve bir tuşa bas.';
+        return true;
+      } catch (err) {
+        status.textContent = `${err.message || err}`;
+        this.listening = null;
+        return false;
+      }
+    })();
+    return this.listening;
+  }
+
+  /** Mikrofonu ve MIDI'yi kapat */
+  close() {
+    this.listener?.stop();
+    this.listener = null;
+    this.midi?.stop();
+    this.midi = null;
+    this.listening = null;
+    this.micState = null;
+    this.$('.level').hidden = true;
+  }
+
+  /** Piyanodan gelen nota: çalışırken cevap, değilken komut */
+  onNote(m) {
+    this.kb.show(m);
+    if (this.running) return this.answer({ midi: m });
+    const now = performance.now();
+    const pc = pcOf(m);
+    const prev = this.lastPress;
+    this.lastPress = { pc, at: now };
+    if (!prev || prev.pc !== pc || now - prev.at > DOUBLE_MS || !(pc in COMMANDS)) return;
+    this.lastPress = null;
+    const cmd = COMMANDS[pc];
+    if (cmd === 'start') this.start();
+    else if (this.nav[cmd]) location.hash = this.nav[cmd].href.replace(/^.*#/, '#');
+    else this.$('.mic-status').textContent = cmd === 'next' ? 'Bu son alıştırma.' : 'Bu ilk alıştırma.';
+  }
+
   /** Metronom: mikrofonla çalışırken perdesiz tık (nota sanılmasın) */
   startMetro() {
     this.metro?.stop();
@@ -415,10 +487,7 @@ export class ReadingGame {
     this.metro?.stop();
     this.running = false;
     this.el?.classList.remove('running');
-    this.listener?.stop();
-    this.listener = null;
-    this.midi?.stop();
-    this.midi = null;
+    this.lastPress = null;
     this.padSound?.stop();
     clearTimeout(this.nextTimer);
   }
@@ -455,9 +524,8 @@ export class ReadingGame {
       st.last = m;
       st.armed = false;
       st.trough = rms;
-      this.kb.show(m);
-      this.$('.mic-status').textContent = `Duyulan: ${longName(noteFromMidi(m))}`;
-      if (this.running) this.answer({ midi: m, mic: true });
+      if (this.running) this.$('.mic-status').textContent = `Duyulan: ${longName(noteFromMidi(m))}`;
+      this.onNote(m);
     }
   }
 
@@ -543,10 +611,7 @@ export class ReadingGame {
     this.metro?.stop();
     this.running = false;
     this.el.classList.remove('running');
-    this.listener?.stop();
-    this.listener = null;
-    this.midi?.stop();
-    this.midi = null;
+    this.lastPress = null;
     const n = this.questions.length;
     const ok = this.results.filter((r) => r === 'ok').length;
     const pct = Math.round((ok / n) * 100);
@@ -587,7 +652,8 @@ export class ReadingGame {
       <p>${n} sorunun ${ok} tanesini ilk denemede bildin${avg ? `; ortalama ${avg} saniyede` : ''}.
         ${hard.length ? `Zorlandığın notalar: <b>${hard.join(', ')}</b>. Bunlara tekrar bak.` : 'Hiç takılmadın, harika!'}</p>
       ${pace}
-      ${navButtons(this.nav, 'alıştırma')}`;
+      ${navButtons(this.nav, 'alıştırma')}
+      ${this.listener || this.midi ? `<p class="muted rd-commands">${PIANO_COMMANDS_HTML}</p>` : ''}`;
     res.querySelector('[data-act=again]').addEventListener('click', () => this.start());
     res.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
