@@ -91,6 +91,11 @@ export function staffStep(id) {
   return (octave - 4) * 7 + STEP_INDEX[letter] - STEP_INDEX.E;
 }
 
+/** Anahtara göre porte konumu: sol anahtarında alt çizgi Mi4, fa anahtarında Sol2 (12 basamak aşağısı) */
+export function clefStep(id, clef = 'treble') {
+  return staffStep(id) + (clef === 'bass' ? 12 : 0);
+}
+
 /** "Si", "Fa♯", "Do'" gibi kısa ad. İnce oktav (Do5 ve üstü) kesme işaretiyle, kalın oktav (Do3–Si3) virgülle gösterilir. */
 export function shortName(id) {
   const { letter, alter, octave } = parseNote(id);

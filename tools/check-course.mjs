@@ -4,10 +4,10 @@
 import { PHRASES, checkpointPrompt, ttsKey } from '../js/data/phrases.js';
 // Kullanım: node tools/check-course.mjs   (hata varsa çıkış kodu 1)
 const problems = [];
-for (const id of ['flute', 'violin']) {
+for (const id of ['flute', 'violin', 'piano']) {
   const inst = (await import(`../js/instruments/${id}.js`)).default;
   const learned = new Set();
-  const find = (type, itemId) => inst[{ lesson: 'lessons', song: 'songs', drill: 'drills' }[type]].find((x) => x.id === itemId);
+  const find = (type, itemId) => inst[{ lesson: 'lessons', song: 'songs', drill: 'drills', reading: 'readings' }[type]].find((x) => x.id === itemId);
   for (const item of inst.course) {
     const data = find(item.type, item.id);
     if (!data) {
@@ -15,6 +15,17 @@ for (const id of ['flute', 'violin']) {
       continue;
     }
     const where = `${inst.name} › ${data.title}`;
+    if (item.type === 'reading') {
+      // Nota Okuma: notalar enstrümanda olmalı, anahtar sol ya da fa
+      const rows = (data.rows || []).map((r) => (typeof r === 'string' ? { clef: data.clef, notes: r } : r));
+      const notes = [...(data.pool || []), ...Object.values(data.pools || {}).flat(), ...rows.flatMap((r) => r.notes.split(/\s+/))];
+      const bad = [...new Set(notes.filter((n) => !inst.notes.includes(n)))];
+      if (bad.length) problems.push(`${where}: enstrümanda olmayan nota(lar) ${bad.join(', ')}`);
+      const clefs = [data.clef, ...Object.keys(data.pools || {}), ...rows.map((r) => r.clef)].filter(Boolean);
+      if (data.mode !== 'find' && (!clefs.length || clefs.some((c) => !['treble', 'bass'].includes(c)))) problems.push(`${where}: anahtar eksik ya da geçersiz`);
+      if (data.mode === 'find' && !data.letters?.length) problems.push(`${where}: bulunacak nota adları yok`);
+      continue;
+    }
     if (item.type === 'lesson') {
       if (!Array.isArray(data.teaches)) problems.push(`${where}: "teaches" listesi yok`);
       const known = new Set([...learned, ...(data.teaches || [])]);
@@ -38,8 +49,8 @@ for (const id of ['flute', 'violin']) {
     if (sc.say) texts.add(sc.say);
     if (sc.check) texts.add(checkpointPrompt(sc.check));
   }
-  const { manifest } = inst.tts;
-  for (const t of texts) if (t && !manifest.files[ttsKey(t, manifest.voice)]) problems.push(`${inst.name}: Google sesi üretilmemiş cümle: "${t.slice(0, 60)}…" (node tools/tts.mjs ${id})`);
+  const manifest = inst.tts?.manifest;
+  if (manifest) for (const t of texts) if (t && !manifest.files[ttsKey(t, manifest.voice)]) problems.push(`${inst.name}: Google sesi üretilmemiş cümle: "${t.slice(0, 60)}…" (node tools/tts.mjs ${id})`);
   // Egzersiz Yap (çalışma kağıdı): yalnızca tanıtılmış notalar, ölçüler ölçü sayısına tam uymalı, bağlar aynı notaya
   if (inst.worksheets) {
     const { parseRow } = await import('../js/data/worksheet.js');
@@ -78,7 +89,7 @@ for (const id of ['flute', 'violin']) {
     }
   }
   // Ders yolunda olmayan şarkı/antrenman kalmasın
-  for (const [type, list] of [['song', inst.songs], ['drill', inst.drills]]) {
+  for (const [type, list] of [['song', inst.songs], ['drill', inst.drills], ['reading', inst.readings || []]]) {
     for (const x of list) if (!inst.course.some((c) => c.type === type && c.id === x.id)) problems.push(`${inst.name}: ders yolunda olmayan ${type}: ${x.id}`);
   }
 }

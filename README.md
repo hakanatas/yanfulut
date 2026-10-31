@@ -109,6 +109,22 @@ Her ders öğrettiği notaları `teaches` alanında listeler. `node tools/check-
 
 İlerleme tarayıcıda (localStorage) saklanır. Mikrofon sesi yalnızca tarayıcıda işlenir, hiçbir yere gönderilmez.
 
+## Nokta Nokta Piyano (`/piyano/`): Nota Okuma
+
+Piyanoya geçmeden önce nota okuma yolu (`js/piano/reading.js`, oyun `js/reading.js`, klavye `js/keyboard.js`). 16 adım:
+klavyeyi tanıma (ikili/üçlü siyah tuşlar, yedi nota), sol anahtarı (orta Do'dan ince Sol'e; çizgi ve aralık notaları),
+fa anahtarı (pes Sol'den orta Do'ya) ve iki anahtar karışık. Her adımın üstünde kısa konu anlatımı ve resmi (klavye ya da porte) var.
+
+- **Türler:** *Klavyede bul* (porte yok, "Fa'ya bas"; her oktav doğru), *Nota okuma* (portede tek nota, rastgele sırayla),
+  *Satır okuma* (bir satır notayı soldan sağa sırayla çal; Neşeye Övgü ve Küçük Yıldız gibi ezgiler de var).
+- **Cevap yolları:** ekrandaki klavye (basınca piyano sesi), gerçek piyano (mikrofon: yeni ve kararlı bir nota başlayınca sayılır;
+  sönen eski nota tekrar sayılmaz, aynı tuşa yeniden basış ses yükselişinden anlaşılır), MIDI klavye (Web MIDI; Chrome/Edge) ve
+  piyanosuz *nota adıyla* cevap (Do Re Mi… düğmeleri; oktav sorulmaz).
+- **Geri bildirim:** yanlışta hedefin yukarıda mı aşağıda mı olduğu, doğru nota yanlış oktav uyarısı; iki yanlıştan sonra doğru tuş
+  yanıp söner. Sonuçta ilk denemede doğru yüzdesi, ortalama süre ve zorlanılan notalar; yıldızlar ilerlemeye kaydedilir.
+- **Porte:** sol (𝄞) ve fa (𝄢) anahtarı (`clefStep`), ek çizgiler; ipucu olarak nota adı gösterilebilir, klavyede tuş adları açılabilir.
+- Video dersler, şarkılar ve iki elle çalma sonraki adımda.
+
 ## Çalıştırma
 
 Derleme adımı yok; düz HTML, CSS ve JavaScript (ES modülleri). Modüller `file://` üzerinden açılmadığı için küçük bir yerel sunucu yeterli:
