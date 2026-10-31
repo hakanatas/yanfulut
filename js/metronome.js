@@ -63,8 +63,8 @@ export function tempoName(bpm) {
 
 /** Bağımsız metronom. onBeat(beat): ses çıktığı anda çağrılır (0 = ölçünün ilk vuruşu) */
 export class Metronome {
-  constructor({ bpm = 80, beats = 4, sub = false, onBeat } = {}) {
-    Object.assign(this, { bpm: clampBpm(bpm), beats, sub, onBeat });
+  constructor({ bpm = 80, beats = 4, sub = false, soft = false, onBeat } = {}) {
+    Object.assign(this, { bpm: clampBpm(bpm), beats, sub, soft, onBeat });
     this.running = false;
     this.visuals = [];
   }
@@ -84,7 +84,7 @@ export class Metronome {
     while (this.running && this.next < ac.currentTime + 0.12) {
       const b = this.beat % this.beats;
       const spb = 60 / this.bpm;
-      tick(this.next, { strong: this.beats > 1 && b === 0 });
+      tick(this.next, { strong: this.beats > 1 && b === 0, soft: this.soft });
       if (this.sub) tick(this.next + spb / 2, { sub: true });
       const delay = (this.next - ac.currentTime) * 1000;
       this.visuals.push(setTimeout(() => this.running && this.onBeat?.(b), Math.max(0, delay)));

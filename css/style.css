@@ -858,3 +858,15 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
   .reading .drill-options .seg-group .chip-btn:nth-child(2n) { border-left: 2px solid var(--ink); }
   .rd-board { min-height: 140px; }
 }
+/* Gamlar: parmak numaraları, iki el portesi, metronom */
+.rd-finger { font-size: 13px; font-weight: 700; fill: var(--teal); }
+.rd-grand { display: grid; gap: 0; width: 100%; }
+.rd-grand .rd-staff-svg { max-width: none; }
+.rd-metro .rd-bpm { padding: 0 10px; font-weight: 700; display: inline-flex; align-items: center; }
+.rd-pace { font-weight: 600; }
+.scale-key p { margin: 6px 0 10px; }
+/* Uzun satırlar (gamlar): porte tam genişlikte, bilgi altında */
+.rd-stage.wide { grid-template-columns: 1fr; }
+.rd-stage.wide .rd-staff-svg { max-width: none; }
+.rd-stage.wide .rd-side { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; }
+.rd-stage.wide .rd-feedback { min-height: 1.6em; flex: 1 1 320px; margin: 0; }
