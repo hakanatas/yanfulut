@@ -1,7 +1,7 @@
 // Piyano paketi: şimdilik piyanoya geçmeden önceki Nota Okuma yolu (klavyeyi tanıma, sol ve fa anahtarı).
 // Video dersler, şarkılar ve antrenmanlar sonraki adımda eklenecek.
 import { READINGS } from '../piano/reading.js';
-import { EXAM_PICKS, SCALE_EXERCISES, SCALE_GROUPS } from '../piano/scales.js';
+import { BROKEN_PICKS, EXAM_PICKS, SCALE_EXERCISES, SCALE_GROUPS } from '../piano/scales.js';
 import { keyboardSvg } from '../keyboard.js';
 import { longName, midiOf, noteFromMidi, setRegisterNaming } from '../data/notes.js';
 import { setPitchRange, setTimbre } from '../audio.js';
@@ -35,7 +35,7 @@ export default {
   drills: [],
   readings: READINGS,
   // Sınav gamları (Gamlar sayfası): tonlar ve her tonun alıştırmaları
-  scales: { title: 'Grade 3 Gamları (Trinity)', keys: SCALE_GROUPS, exercises: SCALE_EXERCISES, picks: EXAM_PICKS },
+  scales: { title: 'Grade 3 Gamları (Trinity)', keys: SCALE_GROUPS, exercises: SCALE_EXERCISES, picks: EXAM_PICKS, brokenPicks: BROKEN_PICKS },
   course: READINGS.map((r) => ({ type: 'reading', id: r.id })),
   notes: NOTES,
   defaultNote: 'C4',
