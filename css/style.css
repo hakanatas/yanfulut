@@ -870,3 +870,7 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .rd-stage.wide .rd-staff-svg { max-width: none; }
 .rd-stage.wide .rd-side { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; }
 .rd-stage.wide .rd-feedback { min-height: 1.6em; flex: 1 1 320px; margin: 0; }
+.scale-en { color: var(--teal); font-weight: 700; white-space: nowrap; }
+.scale-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; }
+.scale-jump .chip-btn { font-weight: 500; }
+.scale-key { scroll-margin-top: 90px; }

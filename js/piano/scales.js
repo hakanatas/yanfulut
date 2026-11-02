@@ -41,6 +41,9 @@ function spell(tonic, steps, octaves = 2, dir = 1) {
 
 /** Sol el satırına uygun anahtar: ortalaması Re4'e yakın ya da üstündeyse sol anahtarı (kitaptaki gibi) */
 const clefFor = (notes) => (notes.reduce((s, n) => s + midiOfName(n), 0) / notes.length >= 62 ? 'treble' : 'bass');
+/** Harfli ad (kitaptaki gibi): 'Ab3' → 'A♭' */
+const letterName = (tonic) => tonic.replace(/\d$/, '').replace('b', '♭').replace('#', '♯');
+const pageOf = (key, form) => (typeof key.page === 'object' ? key.page[form] : key.page);
 const shift = (n, d) => n.replace(/\d$/, (o) => String(Number(o) + d));
 
 /**
@@ -75,23 +78,23 @@ const LH_B = [4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 4, 3, 2, 1];
 const LH_FLAT = [3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 4, 3, 2, 1, 2];
 
 export const KEYS = [
-  { id: 'mi-majör', name: 'Mi majör', tonic: 'E4', type: 'major', rh: STD_RH, lh: LH_C, tip: 'Dört diyez: Fa♯, Do♯, Sol♯, Re♯. Parmaklar Do majörle aynı.' },
-  { id: 'si-majör', name: 'Si majör', tonic: 'B3', type: 'major', rh: STD_RH, lh: LH_B, tip: 'Beş diyez: Fa♯, Do♯, Sol♯, Re♯, La♯. Sol el 4. parmakla başlar; başparmaklar Si ve Mi\'de.' },
-  { id: 'sib-majör', name: 'Si bemol majör', tonic: 'Bb3', type: 'major', rh: [2, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4], lh: LH_FLAT, tip: 'İki bemol: Si♭, Mi♭. Sağ el 2. parmakla, sol el 3. parmakla başlar. Sağ el 4. parmak her zaman Si♭\'de.' },
-  { id: 'mib-majör', name: 'Mi bemol majör', tonic: 'Eb4', type: 'major', rh: [2, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3], lh: LH_FLAT, tip: 'Üç bemol: Si♭, Mi♭, La♭. Sağ el 2. parmakla başlar; 4. parmak her zaman Si♭\'de. Sol el 3. parmakla başlar.' },
-  { id: 'lab-majör', name: 'La bemol majör', tonic: 'Ab3', type: 'major', rh: [2, 3, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3], lh: LH_FLAT, tip: 'Dört bemol: Si♭, Mi♭, La♭, Re♭. Sağ el 2-3 ile başlar, başparmak Do ve Fa\'da; 4. parmak Si♭\'de.' },
-  { id: 'reb-majör', name: 'Re bemol majör', tonic: 'Db4', type: 'major', rh: [2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 1, 2], lh: LH_FLAT, tip: 'Beş bemol: Si♭, Mi♭, La♭, Re♭, Sol♭. Başparmaklar yalnızca beyaz tuşlarda (Fa ve Do). Sağ el 4. parmak Si♭\'de, sol el 4. parmak Sol♭\'de.' },
-  { id: 'si-minör', name: 'Si minör', tonic: 'B3', type: 'minor', rh: STD_RH, lh: LH_B, tip: 'İki diyez: Fa♯, Do♯. Armonikte 7. ses La♯; melodikte çıkarken Sol♯ ve La♯, inerken La ve Sol doğal. Sol el 4. parmakla başlar.' },
-  { id: 'sol-minör', name: 'Sol minör', tonic: 'G3', type: 'minor', rh: STD_RH, lh: LH_C, tip: 'İki bemol: Si♭, Mi♭. Armonikte 7. ses Fa♯; melodikte çıkarken Mi doğal ve Fa♯, inerken Fa doğal ve Mi♭.' },
-  { id: 'do-minör', name: 'Do minör', tonic: 'C4', type: 'minor', rh: STD_RH, lh: LH_C, tip: 'Üç bemol: Si♭, Mi♭, La♭. Armonikte 7. ses Si doğal; melodikte çıkarken La ve Si doğal, inerken Si♭ ve La♭.' },
-  { id: 'fa-minör', name: 'Fa minör', tonic: 'F3', type: 'minor', rh: [1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 4], lh: LH_C, tip: 'Dört bemol: Si♭, Mi♭, La♭, Re♭. Armonikte 7. ses Mi doğal; melodikte çıkarken Re ve Mi doğal, inerken Mi♭ ve Re♭. Sağ el 4. parmak Si♭\'de.' },
+  { id: 'mi-majör', page: 5, name: 'Mi majör', tonic: 'E4', type: 'major', rh: STD_RH, lh: LH_C, tip: 'Dört diyez: Fa♯, Do♯, Sol♯, Re♯. Parmaklar Do majörle aynı.' },
+  { id: 'si-majör', page: 5, name: 'Si majör', tonic: 'B3', type: 'major', rh: STD_RH, lh: LH_B, tip: 'Beş diyez: Fa♯, Do♯, Sol♯, Re♯, La♯. Sol el 4. parmakla başlar; başparmaklar Si ve Mi\'de.' },
+  { id: 'sib-majör', page: 5, name: 'Si bemol majör', tonic: 'Bb3', type: 'major', rh: [2, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4], lh: LH_FLAT, tip: 'İki bemol: Si♭, Mi♭. Sağ el 2. parmakla, sol el 3. parmakla başlar. Sağ el 4. parmak her zaman Si♭\'de.' },
+  { id: 'mib-majör', page: 5, name: 'Mi bemol majör', tonic: 'Eb4', type: 'major', rh: [2, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3], lh: LH_FLAT, tip: 'Üç bemol: Si♭, Mi♭, La♭. Sağ el 2. parmakla başlar; 4. parmak her zaman Si♭\'de. Sol el 3. parmakla başlar.' },
+  { id: 'lab-majör', page: 6, name: 'La bemol majör', tonic: 'Ab3', type: 'major', rh: [2, 3, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3], lh: LH_FLAT, tip: 'Dört bemol: Si♭, Mi♭, La♭, Re♭. Sağ el 2-3 ile başlar, başparmak Do ve Fa\'da; 4. parmak Si♭\'de.' },
+  { id: 'reb-majör', page: 6, name: 'Re bemol majör', tonic: 'Db4', type: 'major', rh: [2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 1, 2], lh: LH_FLAT, tip: 'Beş bemol: Si♭, Mi♭, La♭, Re♭, Sol♭. Başparmaklar yalnızca beyaz tuşlarda (Fa ve Do). Sağ el 4. parmak Si♭\'de, sol el 4. parmak Sol♭\'de.' },
+  { id: 'si-minör', page: { armonik: 6, melodik: 6 }, name: 'Si minör', tonic: 'B3', type: 'minor', rh: STD_RH, lh: LH_B, tip: 'İki diyez: Fa♯, Do♯. Armonikte 7. ses La♯; melodikte çıkarken Sol♯ ve La♯, inerken La ve Sol doğal. Sol el 4. parmakla başlar.' },
+  { id: 'sol-minör', page: { armonik: 6, melodik: 7 }, name: 'Sol minör', tonic: 'G3', type: 'minor', rh: STD_RH, lh: LH_C, tip: 'İki bemol: Si♭, Mi♭. Armonikte 7. ses Fa♯; melodikte çıkarken Mi doğal ve Fa♯, inerken Fa doğal ve Mi♭.' },
+  { id: 'do-minör', page: { armonik: 7, melodik: 7 }, name: 'Do minör', tonic: 'C4', type: 'minor', rh: STD_RH, lh: LH_C, tip: 'Üç bemol: Si♭, Mi♭, La♭. Armonikte 7. ses Si doğal; melodikte çıkarken La ve Si doğal, inerken Si♭ ve La♭.' },
+  { id: 'fa-minör', page: { armonik: 7, melodik: 7 }, name: 'Fa minör', tonic: 'F3', type: 'minor', rh: [1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 4], lh: LH_C, tip: 'Dört bemol: Si♭, Mi♭, La♭, Re♭. Armonikte 7. ses Mi doğal; melodikte çıkarken Re ve Mi doğal, inerken Mi♭ ve Re♭. Sağ el 4. parmak Si♭\'de.' },
 ];
 
 /** Zıt yön gamları: iki el aynı notadan başlar, sağ el çıkar, sol el iner (iki oktav) */
 export const CONTRARY = [
-  { id: 'sol-majör-zit', name: 'Sol majör', tonic: 'G4', steps: MAJOR },
-  { id: 're-majör-zit', name: 'Re majör', tonic: 'D4', steps: MAJOR },
-  { id: 'la-minör-zit', name: 'La armonik minör', tonic: 'A3', steps: HARMONIC },
+  { id: 'sol-majör-zit', name: 'Sol majör · G major', tonic: 'G4', steps: MAJOR },
+  { id: 're-majör-zit', name: 'Re majör · D major', tonic: 'D4', steps: MAJOR },
+  { id: 'la-minör-zit', name: 'La armonik minör · A harmonic minor', tonic: 'A3', steps: HARMONIC },
 ];
 // Zıt yönde iki el de aynı parmak sırasıyla gider (sağ el yukarı, sol el aşağı)
 
@@ -118,20 +121,23 @@ function exercisesOf(key) {
     : [{ id: '', label: '', up: MAJOR, down: MAJOR }];
   const out = [];
   for (const f of forms) {
-    const name = `${key.name}${f.label ? ` (${f.label})` : ''}`;
-    const pre = f.label ? `${f.label}, ` : '';
+    const en = `${letterName(key.tonic)} ${f.label ? `${f.label === 'armonik' ? 'harmonic' : 'melodic'} ` : ''}${minor ? 'minor' : 'major'}`;
+    // Başlık hem notalı hem harfli: "Si minör armonik · B harmonic minor"
+    const name = `${key.name}${f.label ? ` ${f.label}` : ''} · ${en}`;
+    const book = `Kitap s. ${pageOf(key, f.label)}.`;
+    const pre = f.label ? `${f.label} (${f.label === 'armonik' ? 'harmonic' : 'melodic'}), ` : '';
     const top = shift(key.tonic, 2);
     const rhUp = spell(key.tonic, f.up);
     const rhDown = spell(top, f.down, 2, -1);
     const lhUp = rhUp.map((n) => shift(n, -1));
     const lhDown = rhDown.map((n) => shift(n, -1));
-    out.push({ id: `${key.id}${f.id}-sag`, short: `${pre}sağ el`, title: `${name} · sağ el`, focus: `İki oktav çık ve in. ${dyn}`, mode: 'line', rows: rowsOf(rhUp, rhDown, key.rh), ...tempo });
-    out.push({ id: `${key.id}${f.id}-sol`, short: `${pre}sol el`, title: `${name} · sol el`, focus: `İki oktav çık ve in; üst oktav sol anahtarında. ${dyn}`, mode: 'line', rows: rowsOf(lhUp, lhDown, key.lh, null, null, null, { leftHand: true }), ...tempo });
+    out.push({ id: `${key.id}${f.id}-sag`, short: `${pre}sağ el`, title: `${name} · sağ el`, focus: `${book} İki oktav çık ve in. ${dyn}`, mode: 'line', rows: rowsOf(rhUp, rhDown, key.rh), ...tempo });
+    out.push({ id: `${key.id}${f.id}-sol`, short: `${pre}sol el`, title: `${name} · sol el`, focus: `${book} İki oktav çık ve in; üst oktav sol anahtarında. ${dyn}`, mode: 'line', rows: rowsOf(lhUp, lhDown, key.lh, null, null, null, { leftHand: true }), ...tempo });
     out.push({
       id: `${key.id}${f.id}-iki-el`,
       short: `${pre}iki el`,
       title: `${name} · iki el birlikte`,
-      focus: `İki el aynı anda, bir oktav arayla. ${dyn}`,
+      focus: `${book} İki el aynı anda, bir oktav arayla. ${dyn}`,
       mode: 'line',
       together: true,
       rows: rowsOf(rhUp, rhDown, key.rh, lhUp, lhDown, key.lh),
@@ -153,9 +159,9 @@ function contraryOf(c) {
   const rows = rowsOf(rhUp, rhDown, f, lhDown, lhUp, f);
   return {
     id: c.id,
-    short: 'zıt yön, iki el',
+    short: c.name,
     title: `${c.name} · zıt yön`,
-    focus: `İki el aynı notadan başlar: sağ el çıkar, sol el iner, sonra geri gelir. ${dyn}`,
+    focus: `Kitap s. 8 (contrary motion). İki el aynı notadan başlar: sağ el çıkar, sol el iner, sonra geri gelir. ${dyn}`,
     mode: 'line',
     together: true,
     rows,
@@ -166,7 +172,10 @@ function contraryOf(c) {
 
 export const SCALE_EXERCISES = [...KEYS.flatMap(exercisesOf), ...CONTRARY.map(contraryOf)];
 export const SCALE_GROUPS = [
-  ...KEYS.map((k) => ({ id: k.id, name: k.name, tip: k.tip })),
-  { id: 'zit-yon', name: 'Zıt yön gamları', tip: 'Sol majör, Re majör ve La armonik minör; iki oktav, iki el birlikte. İki el aynı notadan (iki başparmak) başlar ve aynı parmak numaralarıyla birbirinden uzaklaşır.' },
+  ...KEYS.map((k) => {
+    const pages = [...new Set(typeof k.page === 'object' ? Object.values(k.page) : [k.page])].join('–');
+    return { id: k.id, name: k.name, en: `${letterName(k.tonic)} ${k.type === 'minor' ? 'minor' : 'major'}`, page: pages, tip: k.tip };
+  }),
+  { id: 'zit-yon', name: 'Zıt yön gamları', en: 'Contrary motion scales', page: '8', tip: 'Sol majör, Re majör ve La armonik minör; iki oktav, iki el birlikte. İki el aynı notadan (iki başparmak) başlar ve aynı parmak numaralarıyla birbirinden uzaklaşır.' },
 ];
 export const keyName = (id) => SCALE_GROUPS.find((k) => k.id === id)?.name;

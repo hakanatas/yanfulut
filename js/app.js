@@ -202,6 +202,15 @@ function showScaleList() {
       <p class="muted">Parmak numaraları kitaptaki gibi notaların üstünde. Önce yavaş ve doğru çal, sonra metronomu adım adım 96'ya çıkar.
         Sınavda gamlar ezberden çalınır: rahatladıkça "Nota adını göster" kapalı kalsın.</p>
     </section>`);
+  // Hızlı atlama: her ton hem notalı hem harfli (Si♭ · B♭ major)
+  const jump = h(`<div class="scale-jump" role="navigation" aria-label="Tona git">${keys
+    .map((k) => `<button class="chip-btn standalone" data-key="${k.id}"><b>${k.name}</b>${k.en ? ` · ${k.en.replace(' scales', '')}` : ''}</button>`)
+    .join('')}</div>`);
+  jump.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-key]');
+    if (b) page.querySelector(`[data-group="${b.dataset.key}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  page.appendChild(jump);
   if (picks.length) {
     const list = picks.map((p) => ({ ...p, e: exercises.find((x) => x.id === p.id) })).filter((p) => p.e);
     page.appendChild(
@@ -216,8 +225,8 @@ function showScaleList() {
     const list = exercises.filter((e) => e.key === k.id);
     const done = list.filter((e) => progress.songStars(`read-${e.id}`) > 0).length;
     page.appendChild(
-      h(`<div class="ws-unit card scale-key">
-        <div class="ws-unit-head"><h3>${k.name}</h3><span class="muted">${done} / ${list.length} alıştırma</span></div>
+      h(`<div class="ws-unit card scale-key" data-group="${k.id}">
+        <div class="ws-unit-head"><h3>${k.name}${k.en ? ` <span class="scale-en">· ${k.en}</span>` : ''}</h3><span class="muted">${k.page ? `kitap s. ${k.page} · ` : ''}${done} / ${list.length} alıştırma</span></div>
         <p>${k.tip}</p>
         <div class="drill-cards">${list.map((e) => card(e)).join('')}</div>
       </div>`),
