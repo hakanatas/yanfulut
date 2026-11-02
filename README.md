@@ -131,6 +131,10 @@ Sınav kitabındaki (s. 5–8) gamlar, parmak numaralarıyla (başlıklar hem no
 minör (sağ el, sol el, iki el birlikte); zıt yönde Sol, Re majör ve La armonik minör. Hepsi iki oktav (29 nota), kitaptaki gibi
 oktav oktav dört satır; sol elin tiz oktavı sol anahtarında. Notalar doğru yazılır (Mi♯, La♭…), satırlar `spell()` ile üretilir.
 
+- **Kitaptaki görünüm:** gamlarda notalar dolu, saplı ve dörtlü bağlı (kirişli) sekizlikler olarak yazılır (`readingStaff({beam: 4})`;
+  sap yönü grubun ortalamasına göre, kiriş eğimi sınırlı). Diğer okuma alıştırmaları birlik nota olarak kalır.
+- **Kırık akorlar (s. 9):** Sol majör, Mi minör, Re minör; eller ayrı, forte, ♩ = 72. Dörtlü gruplar (kök, 1. ve 2. çevrim, oktav
+  yukarıda kök) çıkar ve geri iner, 32 nota; parmaklar kitaptan. Sayfaya yazılan 5, 6, 7 de sınav seçiminde.
 - **Sınav seçimi:** kitaba elle yazılan altı gam, dinamiğiyle (forte / piano) listenin başında (`EXAM_PICKS`).
 - **İki el:** büyük porte (sağ el üstte, sol el altta). MIDI klavyede iki tuş yarım saniye içinde birlikte beklenir; ekran ve
   mikrofonda biri yeter. Satır okumada doğru notadan sonra beklemeden sıradakine geçilir, hızlı çalışta nota kaçmaz.

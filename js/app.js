@@ -186,7 +186,7 @@ function showReading(set) {
 
 // --------------------------------------------------------------------- Gamlar (sınav hazırlığı)
 function showScaleList() {
-  const { title, keys, exercises, picks = [] } = instrument().scales;
+  const { title, keys, exercises, picks = [], brokenPicks = [] } = instrument().scales;
   const card = (e, head, sub) => {
     const stars = progress.songStars(`read-${e.id}`);
     return `<a class="drill-card" href="#/gam/${e.id}"><b>${head || e.short.charAt(0).toLocaleUpperCase('tr') + e.short.slice(1)}</b><span>${sub || e.focus}</span>
@@ -196,8 +196,8 @@ function showScaleList() {
   const page = h(`
     <section class="drill-list-page scales-page">
       <div class="page-head"><h2>${title}</h2></div>
-      <p class="muted">Sınav kitabındaki gamlar (s. 5–8): Mi, Si, Si♭, Mi♭, La♭, Re♭ majör; Si, Sol, Do, Fa armonik ve melodik minör
-        (sınavda hangisi olacağını aday seçer); zıt yönde Sol, Re majör ve La armonik minör. Hepsi iki oktav, eller ayrı ve birlikte,
+      <p class="muted">Sınav kitabındaki gamlar ve kırık akorlar (s. 5–9): Mi, Si, Si♭, Mi♭, La♭, Re♭ majör; Si, Sol, Do, Fa armonik ve melodik minör
+        (sınavda hangisi olacağını aday seçer); zıt yönde Sol, Re majör ve La armonik minör; kırık akorlarda (s. 9) Sol majör, Mi ve Re minör. Hepsi iki oktav, eller ayrı ve birlikte,
         <i>piano</i> ve <i>forte</i>, sınav temposu ♩ = 96 (her vuruşa iki nota).</p>
       <p class="muted">Parmak numaraları kitaptaki gibi notaların üstünde. Önce yavaş ve doğru çal, sonra metronomu adım adım 96'ya çıkar.
         Sınavda gamlar ezberden çalınır: rahatladıkça "Nota adını göster" kapalı kalsın.</p>
@@ -212,12 +212,17 @@ function showScaleList() {
   });
   page.appendChild(jump);
   if (picks.length) {
-    const list = picks.map((p) => ({ ...p, e: exercises.find((x) => x.id === p.id) })).filter((p) => p.e);
+    const withEx = (arr) => arr.map((p) => ({ ...p, e: exercises.find((x) => x.id === p.id) })).filter((p) => p.e);
+    const list = withEx(picks);
+    const broken = withEx(brokenPicks);
+    const dynText = (d) => (d === 'forte' ? '<i>forte</i> (f) · güçlü' : '<i>piano</i> (p) · yumuşak');
     page.appendChild(
       h(`<div class="ws-unit card scale-key scale-picks">
         <div class="ws-unit-head"><h3>⭐ Sınav seçimi</h3><span class="muted">kitaba yazılan sırayla</span></div>
-        <p>Kitaba elle yazılan altı gam. Her birini yazılan dinamikle çal: <i>forte</i> güçlü, <i>piano</i> yumuşak.</p>
-        <div class="drill-cards">${list.map((p, k) => card(p.e, `${k + 1}. ${p.e.title}`, p.note === 'forte' ? '<i>forte</i> (f) · güçlü' : '<i>piano</i> (p) · yumuşak')).join('')}</div>
+        <p>Kitaba elle yazılan gamlar ve kırık akorlar. Her birini yazılan dinamikle çal: <i>forte</i> güçlü, <i>piano</i> yumuşak.</p>
+        <div class="drill-cards">${list.map((p, k) => card(p.e, `${k + 1}. ${p.e.title}`, dynText(p.note))).join('')}</div>
+        ${broken.length ? `<p class="picks-sub"><b>Kırık akorlar</b> (kitap s. 9'a yazılan 5, 6, 7)</p>
+        <div class="drill-cards">${broken.map((p) => card(p.e, `${p.num}. ${p.e.title}`, dynText(p.note))).join('')}</div>` : ''}
       </div>`),
     );
   }

@@ -107,8 +107,14 @@ export const EXAM_PICKS = [
   { id: 'do-minör-melodik-sag', note: 'piano' },
   { id: 'fa-minör-armonik-iki-el', note: 'piano' },
 ];
+/** Kırık akorlar sayfasına yazılan seçim (5, 6, 7) */
+export const BROKEN_PICKS = [
+  { id: 'sol-majör-kirik-sag', num: 5, note: 'forte' },
+  { id: 'mi-minör-kirik-sol', num: 6, note: 'forte' },
+  { id: 're-minör-kirik-sag', num: 7, note: 'forte' },
+];
 
-const tempo = { metronome: true, bpm: 60, examBpm: EXAM_BPM };
+const tempo = { metronome: true, bpm: 60, examBpm: EXAM_BPM, beam: 4 }; // kitaptaki gibi dörtlü bağlı sekizlikler
 const dyn = 'Bir kez piano (yumuşak), bir kez forte (güçlü) çal.';
 
 function exercisesOf(key) {
@@ -170,12 +176,64 @@ function contraryOf(c) {
   };
 }
 
-export const SCALE_EXERCISES = [...KEYS.flatMap(exercisesOf), ...CONTRARY.map(contraryOf)];
+// ------------------------------------------------------------------ kırık akorlar (kitap s. 9)
+// Sol majör, Mi minör, Re minör; eller ayrı, forte, ♩ = 72. Her grup dört nota: kök durum, 1. çevrim, 2. çevrim,
+// bir oktav yukarıda kök durum; sonra aynı gruplar tersine inerek. Parmaklar kitaptan (üç tonda da aynı).
+export const BROKEN_BPM = 72;
+const RH_UP = [[1, 2, 3, 5], [1, 2, 4, 5], [1, 2, 4, 5], [1, 2, 3, 5]];
+const LH_UP = [[5, 4, 2, 1], [5, 4, 2, 1], [5, 3, 2, 1], [5, 4, 2, 1]];
+export const BROKEN = [
+  { id: 'sol-majör-kirik', name: 'Sol majör · G major', chord: ['G', 'B', 'D'], rh: 3, lh: 2, tip: 'Sol, Si, Re. Sağ el pes Sol\'den (Sol3), sol el bir oktav aşağıdan başlar.' },
+  { id: 'mi-minör-kirik', name: 'Mi minör · E minor', chord: ['E', 'G', 'B'], rh: 4, lh: 2, tip: 'Mi, Sol, Si. Sol el iki oktav aşağıdan (Mi2) başlar.' },
+  { id: 're-minör-kirik', name: 'Re minör · D minor', chord: ['D', 'F', 'A'], rh: 4, lh: 2, tip: 'Re, Fa, La (Si♭ akorda yok). Sol el iki oktav aşağıdan (Re2) başlar.' },
+];
+const SEMI_OF = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+/** Akor seslerinden, verilen sesten başlayıp yukarı doğru n nota */
+function chordRun(chord, startLetter, oct, n) {
+  const out = [];
+  let k = chord.indexOf(startLetter);
+  let prev = -1;
+  while (out.length < n) {
+    const l = chord[k % 3];
+    let m = 12 * (oct + 1) + SEMI_OF[l];
+    while (m <= prev) (m += 12), oct++;
+    out.push(`${l}${oct}`);
+    prev = m;
+    k++;
+  }
+  return out;
+}
+function brokenOf(c) {
+  const make = (hand) => {
+    const oct = c[hand];
+    // Çıkış: dört grup (kök, 1. çevrim, 2. çevrim, oktav yukarıda kök); iniş: aynı gruplar ters sırayla ve tersine
+    const run = chordRun(c.chord, c.chord[0], oct, 7); // iki oktav arpej: 1 3 5 8 10 12 15
+    const upGroups = [0, 1, 2, 3].map((k) => run.slice(k, k + 4));
+    const fingerUp = hand === 'rh' ? RH_UP : LH_UP;
+    const groups = [...upGroups.map((g, k) => [g, fingerUp[k]]), ...[...upGroups].reverse().map((g, k) => [[...g].reverse(), [...fingerUp[3 - k]].reverse()])];
+    const rows = [];
+    for (let r = 0; r < 4; r++) {
+      const [a, b] = [groups[r * 2], groups[r * 2 + 1]];
+      const notes = [...a[0], ...b[0]];
+      rows.push({ clef: hand === 'rh' ? 'treble' : clefFor(notes), notes: notes.join(' '), fingers: [...a[1], ...b[1]] });
+    }
+    return rows;
+  };
+  const base = { mode: 'line', metronome: true, bpm: 60, examBpm: BROKEN_BPM, beam: 4, key: 'kirik-akor' };
+  const dyn = 'Sınavda forte (güçlü) çalınır.';
+  return [
+    { ...base, id: `${c.id}-sag`, short: `${c.name} · sağ el`, title: `${c.name} · kırık akor · sağ el`, focus: `Kitap s. 9 (broken chords). Dörtlü gruplar: akor sesleri sırayla çıkar, sonra iner. ${dyn}`, rows: make('rh') },
+    { ...base, id: `${c.id}-sol`, short: `${c.name} · sol el`, title: `${c.name} · kırık akor · sol el`, focus: `Kitap s. 9 (broken chords). Dörtlü gruplar: akor sesleri sırayla çıkar, sonra iner. ${dyn}`, rows: make('lh') },
+  ];
+}
+
+export const SCALE_EXERCISES = [...KEYS.flatMap(exercisesOf), ...CONTRARY.map(contraryOf), ...BROKEN.flatMap(brokenOf)];
 export const SCALE_GROUPS = [
   ...KEYS.map((k) => {
     const pages = [...new Set(typeof k.page === 'object' ? Object.values(k.page) : [k.page])].join('–');
     return { id: k.id, name: k.name, en: `${letterName(k.tonic)} ${k.type === 'minor' ? 'minor' : 'major'}`, page: pages, tip: k.tip };
   }),
   { id: 'zit-yon', name: 'Zıt yön gamları', en: 'Contrary motion scales', page: '8', tip: 'Sol majör, Re majör ve La armonik minör; iki oktav, iki el birlikte. İki el aynı notadan (iki başparmak) başlar ve aynı parmak numaralarıyla birbirinden uzaklaşır.' },
+  { id: 'kirik-akor', name: 'Kırık akorlar', en: 'Broken chords', page: '9', tip: 'Sol majör, Mi minör ve Re minör; eller ayrı, forte, ♩ = 72 (her vuruşa iki nota). Her dört notalık grup akorun bir durumu: kök, 1. çevrim, 2. çevrim, sonra bir oktav yukarıda kök; iniş aynı yoldan geri.' },
 ];
 export const keyName = (id) => SCALE_GROUPS.find((k) => k.id === id)?.name;

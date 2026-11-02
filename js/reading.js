@@ -39,32 +39,74 @@ const shuffle = (a) => {
 
 // ------------------------------------------------------------------ porte çizimi
 /**
- * Okuma portesi. notes: [{note, state: ''|'current'|'ok'|'wrong'|'done', label}], clef: 'treble' | 'bass'.
- * Notalar birlik (içi boş) çizilir: süre yok, yalnızca yükseklik okunur.
+ * Kitaptaki gibi bağlı sekizlikler: notalar beam'er'li gruplara ayrılır (her grubun sap yönü ortak).
+ * Dönüş: her nota için {up, end} (sap ucu, basamak cinsinden) ve gruplar.
+ * Basamak: porte alt çizgisi 0, her çizgi/aralık 1 (orta çizgi 4).
  */
-export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = null, cls = 'rd-staff-svg' }) {
-  // Yükseklik notalara göre: porte dışındaki notalar (ek çizgiler) ve parmak numaraları için yer açılır
+function beamLayout(steps, size) {
+  const notes = steps.map(() => null);
+  const groups = [];
+  for (let a = 0; a < steps.length; a += size) groups.push([a, Math.min(steps.length, a + size)]);
+  for (const [a, b] of groups) {
+    const g = steps.slice(a, b);
+    const up = g.reduce((x, y) => x + y, 0) / g.length < 4; // ortalama orta çizginin altındaysa sap yukarı
+    const dir = up ? 1 : -1;
+    const n = b - a;
+    const e0 = g[0] + dir * 6.6;
+    const e1 = g[n - 1] + dir * 6.6;
+    // Kiriş eğimi en çok bir basamak (aralık) kadar; her sap en az 5,6 basamak
+    const slope = n > 1 ? Math.max(-2, Math.min(2, e1 - e0)) / (n - 1) : 0;
+    let line = g.map((_, k) => e0 + slope * k);
+    const need = Math.max(...g.map((st, k) => (up ? st + 5.6 - line[k] : line[k] - (st - 5.6))));
+    if (need > 0) line = line.map((y) => y + dir * need);
+    g.forEach((_, k) => (notes[a + k] = { up, end: line[k], single: n === 1 }));
+  }
+  return { notes, groups };
+}
+
+/**
+ * Okuma portesi. notes: [{note, state: ''|'current'|'ok'|'wrong'|'done', label, finger}], clef: 'treble' | 'bass'.
+ * beam yoksa notalar birlik (içi boş) çizilir: süre yok, yalnızca yükseklik okunur.
+ * beam: n → kitaptaki gibi dolu notalar, sapları ve n'li bağlı (kirişli) sekizlik grupları.
+ */
+export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = null, cls = 'rd-staff-svg', beam = 0 }) {
+  // Yükseklik notalara göre: porte dışındaki notalar (ek çizgiler), saplar ve parmak numaraları için yer açılır
   const steps = notes.map((n) => clefStep(n.note, clef));
-  const maxStep = Math.max(8, ...steps);
-  const minStep = Math.min(0, ...steps);
+  const bl = beam ? beamLayout(steps, beam) : null;
+  const ends = bl ? bl.notes.map((b) => b.end + (b.up ? 1 : -1)) : [];
+  const maxStep = Math.max(8, ...steps, ...ends);
+  const minStep = Math.min(0, ...steps, ...ends);
   const fingers = notes.some((n) => n.finger);
   const top = Math.max(sp * 3.4, sp * (2.2 + (maxStep - 8) / 2) + (fingers ? sp * 1.4 : 0));
   const bottom = top + sp * 4;
-  const below = bottom + sp * (1.6 + -minStep / 2); // en alttaki notanın altı
+  const below = bottom + sp * (1.6 + -minStep / 2); // en alttaki notanın (ya da sapın) altı
   const labelY = below + sp * 1.6;
   const height = labelY + sp * (notes.some((n) => n.label) ? 1.2 : 0.2);
   const x0 = sp * 6.2;
   const gap = sp * 4.2;
   const w = width || Math.max(sp * 16, x0 + notes.length * gap + sp * 2);
-  const yOf = (id) => bottom - (clefStep(id, clef) * sp) / 2;
+  const yStep = (st) => bottom - (st * sp) / 2;
+  const yOf = (id) => yStep(clefStep(id, clef));
+  const xOf = (i) => x0 + i * gap + gap / 2;
+  const rx = sp * 0.68;
+  const stemX = (i) => (bl.notes[i].up ? xOf(i) + rx - 1 : xOf(i) - rx + 1);
   let out = '';
   for (let i = 0; i < 5; i++) out += `<line x1="4" y1="${top + i * sp}" x2="${w - 4}" y2="${top + i * sp}" class="ink thin"/>`;
   out +=
     clef === 'bass'
       ? `<text x="${sp * 0.6}" y="${top + sp * 2.95}" font-size="${sp * 3.6}" class="clef ink-fill">𝄢</text>`
       : `<text x="${sp * 0.5}" y="${bottom + sp * 1.05}" font-size="${sp * 6.6}" class="clef ink-fill">𝄞</text>`;
+  // Kirişler (gruplar): kalın eğik çizgi
+  if (bl) {
+    for (const [a, b] of bl.groups) {
+      if (b - a < 2) continue;
+      const t = sp * 0.5 * (bl.notes[a].up ? 1 : -1);
+      const [x1, y1, x2, y2] = [stemX(a), yStep(bl.notes[a].end), stemX(b - 1), yStep(bl.notes[b - 1].end)];
+      out += `<path d="M${x1 - 0.6} ${y1} L${x2 + 0.6} ${y2} L${x2 + 0.6} ${y2 + t} L${x1 - 0.6} ${y1 + t} Z" class="rd-beam"/>`;
+    }
+  }
   notes.forEach((n, i) => {
-    const cx = x0 + i * gap + gap / 2;
+    const cx = xOf(i);
     const cy = yOf(n.note);
     const step = steps[i];
     let g = '';
@@ -73,11 +115,18 @@ export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = nul
     for (let k = 10; k <= step; k += 2) g += ledger(k);
     const { alter } = parseNote(n.note);
     if (alter) g += `<text x="${cx - sp * 1.6}" y="${cy + sp * 0.7}" font-size="${sp * 2.6}" text-anchor="middle" class="clef ink-fill">${alter > 0 ? '♯' : '♭'}</text>`;
-    g += noteSymbol(cx, cy, sp, 'whole');
+    if (bl) {
+      // Dolu nota başı ve sapı (grubun kirişine kadar)
+      const b = bl.notes[i];
+      g += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${sp * 0.48}" class="ink head-g" transform="rotate(-20 ${cx} ${cy})"/>`;
+      g += `<line x1="${stemX(i)}" y1="${cy}" x2="${stemX(i)}" y2="${yStep(b.end)}" class="ink rd-stem"/>`;
+    } else g += noteSymbol(cx, cy, sp, 'whole');
     if (n.state === 'current') g = `<rect x="${cx - sp * 1.7}" y="3" width="${sp * 3.4}" height="${height - 6}" rx="10" class="drill-hl"/>` + g;
     const label = n.label ? `<text x="${cx}" y="${labelY}" text-anchor="middle" class="rd-label">${n.label}</text>` : '';
-    // Parmak numarası: notanın (ve ek çizgilerin) üstünde
-    const finger = n.finger ? `<text x="${cx}" y="${Math.max(sp, Math.min(top - sp * 0.9, cy - sp * 1.5))}" text-anchor="middle" class="rd-finger">${n.finger}</text>` : '';
+    // Parmak numarası: notanın (ek çizgilerin, yukarı sapın ve kirişin) üstünde
+    let fy = Math.min(top - sp * 0.9, cy - sp * 1.5);
+    if (bl?.notes[i].up) fy = Math.min(fy, yStep(bl.notes[i].end) - sp * 1.1);
+    const finger = n.finger ? `<text x="${cx}" y="${Math.max(sp, fy)}" text-anchor="middle" class="rd-finger">${n.finger}</text>` : '';
     out += `<g class="rd-note ${n.state || ''}">${g}${label}${finger}</g>`;
   });
   return `<svg class="${cls}" viewBox="0 0 ${w} ${height}" role="img" aria-label="${clef === 'bass' ? 'Fa' : 'Sol'} anahtarlı porte">${out}</svg>`;
@@ -370,7 +419,8 @@ export class ReadingGame {
       if (q.partner) {
         // İki el: sağ el üstte, sol el altta (fa anahtarı; tiz oktavda sol anahtarı), notalar hizalı
         const lh = row.map((x, k) => ({ note: x.partner, state: stateOf(base + k), label: nameOf(x.partner, base + k), finger: x.partnerFinger }));
-        board.innerHTML = `<div class="rd-grand">${readingStaff({ clef: 'treble', notes, sp: 12 })}${readingStaff({ clef: q.partnerClef || 'bass', notes: lh, sp: 12 })}</div>`;
+        const beam = this.set.beam || 0;
+        board.innerHTML = `<div class="rd-grand">${readingStaff({ clef: 'treble', notes, sp: 12, beam })}${readingStaff({ clef: q.partnerClef || 'bass', notes: lh, sp: 12, beam })}</div>`;
         const rows = new Set(this.questions.map((x) => x.row)).size;
         board.insertAdjacentHTML('afterbegin', `<div class="rd-row-tag muted">${q.row + 1}. satır / ${rows} · iki el</div>`);
         return;
@@ -378,7 +428,7 @@ export class ReadingGame {
     } else {
       notes = [{ note: q.note, state: this.running ? 'current' : '', label: this.hintNames ? noteLabel(q.note) : '' }];
     }
-    board.innerHTML = readingStaff({ clef, notes, sp: this.set.mode === 'line' ? 13 : 16, width: this.set.mode === 'line' ? null : 330 });
+    board.innerHTML = readingStaff({ clef, notes, sp: this.set.mode === 'line' ? 13 : 16, width: this.set.mode === 'line' ? null : 330, beam: this.set.mode === 'line' ? this.set.beam || 0 : 0 });
     if (this.set.mode === 'line') {
       const rows = new Set(this.questions.map((x) => x.row)).size;
       board.insertAdjacentHTML('afterbegin', `<div class="rd-row-tag muted">${q.row + 1}. satır / ${rows} · ${clef === 'bass' ? 'Fa' : 'Sol'} anahtarı</div>`);

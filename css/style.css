@@ -874,3 +874,9 @@ main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 16
 .scale-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; }
 .scale-jump .chip-btn { font-weight: 500; }
 .scale-key { scroll-margin-top: 90px; }
+.rd-beam { fill: var(--ink); stroke: none; }
+.rd-stem { stroke-width: 1.6; }
+.rd-note.ok .head-g { fill: var(--teal); }
+.rd-note.wrong .head-g { fill: var(--coral); }
+.rd-note.current .head-g { fill: var(--coral); }
+.picks-sub { margin: 16px 0 8px; }
