@@ -127,7 +127,7 @@ fa anahtarı (pes Sol'den orta Do'ya) ve iki anahtar karışık. Her adımın ü
 
 ### Gamlar: Trinity Grade 3 (`#/gamlar`, `js/piano/scales.js`)
 
-Sınav kitabındaki (s. 5–8) gamlar, parmak numaralarıyla: Mi, Si, Si♭, Mi♭, La♭, Re♭ majör; Si, Sol, Do, Fa armonik ve melodik
+Sınav kitabındaki (s. 5–8) gamlar, parmak numaralarıyla (başlıklar hem notalı hem harfli: "Si♭ majör · B♭ major", kitap sayfasıyla; listenin başında tona atlama düğmeleri): Mi, Si, Si♭, Mi♭, La♭, Re♭ majör; Si, Sol, Do, Fa armonik ve melodik
 minör (sağ el, sol el, iki el birlikte); zıt yönde Sol, Re majör ve La armonik minör. Hepsi iki oktav (29 nota), kitaptaki gibi
 oktav oktav dört satır; sol elin tiz oktavı sol anahtarında. Notalar doğru yazılır (Mi♯, La♭…), satırlar `spell()` ile üretilir.
 
