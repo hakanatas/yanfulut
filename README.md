@@ -144,6 +144,12 @@ oktav oktav dört satır; sol elin tiz oktavı sol anahtarında. Notalar doğru 
 - **Tempo:** isteğe bağlı metronom (♩ = 60'tan başlar, ±4); sonuçta dakikadaki nota sayısı, düzgünlük ve sınav temposu
   (♩ = 96, her vuruşa iki nota = dakikada 192 nota) gösterilir.
 
+## Güncellemeler ve önbellek (`sw.js`)
+
+GitHub Pages dosyaları tarayıcıda 10 dakika saklatır; yeni sürümden hemen sonra bazı modüller yeni, bazıları eski gelirse sayfa
+açılmaz ("does not provide an export named …"). Küçük bir service worker (`sw.js`) js, css ve json dosyalarını her açılışta
+sunucuya sordurur (değişmemişse 304). Üç sayfanın giriş betiği onu kaydeder; modül yine de yüklenemezse sayfa bir kez yenilenir.
+
 ## Çalıştırma
 
 Derleme adımı yok; düz HTML, CSS ve JavaScript (ES modülleri). Modüller `file://` üzerinden açılmadığı için küçük bir yerel sunucu yeterli:

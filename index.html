@@ -105,8 +105,20 @@
 
     <noscript>Bu uygulama için JavaScript gerekli.</noscript>
     <script type="module">
-      import { boot } from './js/app.js';
-      boot('flute');
+      // Kod dosyaları her açılışta tazelenir (sw.js); yeni sürüm yarım yüklenirse bir kez yenilenir
+      const sw = navigator.serviceWorker?.register('./sw.js').catch(() => null);
+      import('./js/app.js')
+        .then((m) => {
+          m.boot('flute');
+          sessionStorage.removeItem('reloaded');
+        })
+        .catch(async (err) => {
+          if (sessionStorage.getItem('reloaded')) throw err;
+          sessionStorage.setItem('reloaded', '1');
+          await sw;
+          await Promise.race([navigator.serviceWorker?.ready, new Promise((r) => setTimeout(r, 3000))]);
+          location.reload();
+        });
     </script>
   </body>
 </html>
