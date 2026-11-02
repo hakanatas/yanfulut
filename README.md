@@ -144,6 +144,13 @@ oktav oktav dört satır; sol elin tiz oktavı sol anahtarında. Notalar doğru 
 - **Tempo:** isteğe bağlı metronom (♩ = 60'tan başlar, ±4); sonuçta dakikadaki nota sayısı, düzgünlük ve sınav temposu
   (♩ = 96, her vuruşa iki nota = dakikada 192 nota) gösterilir.
 
+### Parçalar (`#/parcalar`, `js/piano/pieces.js`)
+
+Kullanıcının gönderdiği notalardan parçaların sağ el melodisi, ritmiyle (`rhythmStaff`): birlik, ikilik, dörtlük, sekizlik
+(yarım ölçü içinde kirişli), noktalı notalar, suslar, bağlar, koronalar, ölçü çizgileri ve ölçü değişimi (5/4). Satırlar Egzersiz
+Yap biçiminde (`A4:3 G4:.5 F4:.5 |`); suslar ve bağla uzayan notalar sorulmaz, notalar sırayla çalınır (süre puanlanmaz).
+İlk parça: Tan Dun, *The Eternal Vow* (Crouching Tiger, Hidden Dragon); dört bölüm ve baştan sona.
+
 ## Güncellemeler ve önbellek (`sw.js`)
 
 GitHub Pages dosyaları tarayıcıda 10 dakika saklatır; yeni sürümden hemen sonra bazı modüller yeni, bazıları eski gelirse sayfa

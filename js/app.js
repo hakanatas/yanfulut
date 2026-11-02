@@ -21,6 +21,7 @@ const lessonById = (id) => instrument().lessons.find((l) => l.id === id);
 const songById = (id) => instrument().songs.find((s) => s.id === id);
 const drillById = (id) => instrument().drills.find((d) => d.id === id);
 const readingById = (id) => (instrument().readings || []).find((r) => r.id === id);
+const pieceById = (id) => (instrument().pieces?.exercises || []).find((e) => e.id === id);
 const scaleById = (id) => (instrument().scales?.exercises || []).find((e) => e.id === id);
 const worksheetList = () => (instrument().worksheets || []).flatMap((u) => u.exercises.map((e) => ({ ...e, unit: u })));
 const worksheetById = (id) => worksheetList().find((e) => e.id === id);
@@ -44,6 +45,8 @@ function route() {
   if (page === 'okuma' && readingById(id)) return showReading(readingById(id));
   if (page === 'gam' && scaleById(id)) return showScale(scaleById(id));
   if (page === 'gamlar' && instrument().scales) return showScaleList();
+  if (page === 'parca' && pieceById(id)) return showPiece(pieceById(id));
+  if (page === 'parcalar' && instrument().pieces) return showPieceList();
   if (page === 'antrenman') return showDrillList();
   if (page === 'egzersiz' && instrument().worksheets) {
     const ex = worksheetById(id);
@@ -249,6 +252,51 @@ function showScale(ex) {
   const page = h(`
     <section class="drill-page">
       <div class="page-head"><a class="back" href="#/gamlar">← Gamlar</a>${pagerHtml(nav, 'gam', k, all.length)}</div>
+      <div class="game-host"></div>
+    </section>`);
+  view.appendChild(page);
+  active = new ReadingGame(page.querySelector('.game-host'), ex, { nav });
+}
+
+// --------------------------------------------------------------------- Parçalar
+function showPieceList() {
+  const { list, exercises } = instrument().pieces;
+  view.innerHTML = '';
+  const page = h(`
+    <section class="drill-list-page scales-page">
+      <div class="page-head"><h2>Parçalar</h2></div>
+      <p class="muted">Sağ el melodisi ritmiyle, kitaptaki gibi: ikilik, noktalı notalar, sekizlikler, suslar ve bağlar.
+        Notaları sırayla çal; bağlı notayı (⌒) tekrar çalma, suslarda bekle. Önce bölüm bölüm, sonra baştan sona.</p>
+    </section>`);
+  for (const pc of list) {
+    const parts = pc.parts.map((id) => exercises.find((e) => e.id === id)).filter(Boolean);
+    const done = parts.filter((e) => progress.songStars(`read-${e.id}`) > 0).length;
+    page.appendChild(
+      h(`<div class="ws-unit card scale-key">
+        <div class="ws-unit-head"><h3>${pc.title}</h3><span class="muted">${done} / ${parts.length} alıştırma</span></div>
+        <p>${pc.credit}<br><span class="muted">${pc.tempo}</span></p>
+        <div class="drill-cards">${parts
+          .map((e) => {
+            const stars = progress.songStars(`read-${e.id}`);
+            return `<a class="drill-card" href="#/parca/${e.id}"><b>${e.short.charAt(0).toLocaleUpperCase('tr') + e.short.slice(1)}</b><span>${e.focus}</span>
+              <span class="stars small">${[1, 2, 3].map((n) => `<span class="${n <= stars ? 'on' : ''}">★</span>`).join('')}</span></a>`;
+          })
+          .join('')}</div>
+      </div>`),
+    );
+  }
+  view.appendChild(page);
+}
+
+function showPiece(ex) {
+  const all = instrument().pieces.exercises;
+  const k = all.findIndex((e) => e.id === ex.id);
+  const link = (e) => e && { href: `#/parca/${e.id}`, title: e.title };
+  const nav = { prev: link(all[k - 1]), next: link(all[k + 1]) };
+  view.innerHTML = '';
+  const page = h(`
+    <section class="drill-page">
+      <div class="page-head"><a class="back" href="#/parcalar">← Parçalar</a>${pagerHtml(nav, 'parca', k, all.length)}</div>
       <div class="game-host"></div>
     </section>`);
   view.appendChild(page);

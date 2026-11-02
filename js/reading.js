@@ -132,6 +132,174 @@ export function readingStaff({ clef = 'treble', notes = [], sp = 14, width = nul
   return `<svg class="${cls}" viewBox="0 0 ${w} ${height}" role="img" aria-label="${clef === 'bass' ? 'Fa' : 'Sol'} anahtarlı porte">${out}</svg>`;
 }
 
+// ------------------------------------------------------------------ ritimli satır (parçalar)
+/**
+ * 'A4:3 G4:.5 F4:.5 | R:1 C5:1~ C5:.5 E5:1! ||' gibi satırı öğelere çevirir: {note|rest, beats, tie, fermata, bar, sig, pos}.
+ * '5/4' gibi bir işaret sonraki öğeden önce ölçü değiştirir. pos: ölçü içindeki vuruş (kiriş grupları için).
+ */
+export function parseSeq(str) {
+  const items = [];
+  let sig = null;
+  let pos = 0;
+  for (const tok of str.trim().split(/\s+/)) {
+    if (tok === '|' || tok === '||') {
+      if (items.length) items[items.length - 1].bar = tok === '||' ? 'double' : 'single';
+      pos = 0;
+      continue;
+    }
+    if (/^\d+\/\d+$/.test(tok)) {
+      sig = tok;
+      continue;
+    }
+    const m = /^([A-G][#b]?\d|R)(?::([\d.]+))?(!?)(~?)$/.exec(tok);
+    if (!m) throw new Error(`Geçersiz nota: ${tok}`);
+    const beats = m[2] ? Number(m[2]) : 1;
+    items.push({ rest: m[1] === 'R', note: m[1] === 'R' ? null : m[1], beats, fermata: !!m[3], tie: !!m[4], bar: null, sig, pos });
+    sig = null;
+    pos += beats;
+  }
+  // Bağla uzayan nota (önceki notaya bağlı) yeniden çalınmaz
+  items.forEach((it, k) => (it.held = k > 0 && items[k - 1].tie && items[k - 1].note === it.note));
+  return items;
+}
+
+const DOTTED = (b) => b === 3 || b === 1.5;
+const VALUE_NAME = (b) => (b >= 4 ? 'whole' : b >= 2 ? 'half' : b >= 1 ? 'quarter' : 'eighth');
+
+/**
+ * Ritimli porte (kitaptaki gibi): birlik, ikilik, dörtlük, sekizlik (yarım ölçü içinde kirişli), noktalı notalar,
+ * suslar, bağlar, koronalar, ölçü çizgileri ve ölçü işaretleri. items: parseSeq çıktısı + {state, label}.
+ */
+export function rhythmStaff({ clef = 'treble', items = [], sp = 12, sig = null }) {
+  const stepOf = (it) => clefStep(it.note, clef);
+  // Kiriş grupları: art arda sekizlikler, aynı yarım ölçüde ve araya ölçü çizgisi girmeden
+  const beamOf = items.map(() => null);
+  let grp = [];
+  const flush = () => {
+    if (grp.length > 1) grp.forEach((k) => (beamOf[k] = grp));
+    grp = [];
+  };
+  items.forEach((it, k) => {
+    const eighth = !it.rest && it.beats === 0.5;
+    const prev = items[k - 1];
+    if (!eighth || (grp.length && (prev.bar || Math.floor(it.pos / 2) !== Math.floor(prev.pos / 2)))) flush();
+    if (eighth) grp.push(k);
+    if (it.bar) flush();
+  });
+  flush();
+  // Her grubun sap yönü ve kiriş çizgisi (basamak cinsinden)
+  const stem = items.map((it) => (it.rest || it.beats >= 4 ? null : { up: stepOf(it) < 4, end: stepOf(it) + (stepOf(it) < 4 ? 6.6 : -6.6) }));
+  const seen = new Set();
+  beamOf.forEach((g) => {
+    if (!g || seen.has(g)) return;
+    seen.add(g);
+    const lay = beamLayout(g.map((k) => stepOf(items[k])), g.length);
+    g.forEach((k, j) => (stem[k] = lay.notes[j]));
+  });
+  const steps = items.filter((it) => !it.rest).map(stepOf);
+  const ends = stem.filter(Boolean).map((s) => s.end + (s.up ? 1 : -1));
+  const maxStep = Math.max(8, ...steps.map((x) => x + (items.some((it) => it.fermata) ? 4 : 0)), ...ends);
+  const minStep = Math.min(0, ...steps, ...ends);
+  const top = Math.max(sp * 3, sp * (1.8 + (maxStep - 8) / 2));
+  const bottom = top + sp * 4;
+  const labelY = bottom + sp * (1.6 + -minStep / 2) + sp * 1.4;
+  const height = labelY + sp * (items.some((it) => it.label) ? 1.2 : 0.2);
+  const yStep = (st) => bottom - (st * sp) / 2;
+  const sigSvg = (x, sg) => {
+    const [a, b] = sg.split('/');
+    return `<text x="${x}" y="${top + sp * 1.9}" font-size="${sp * 2.4}" text-anchor="middle" class="time-sig">${a}</text><text x="${x}" y="${top + sp * 3.9}" font-size="${sp * 2.4}" text-anchor="middle" class="time-sig">${b}</text>`;
+  };
+  let x = sp * 6;
+  let out = '';
+  if (sig) {
+    out += sigSvg(x + sp * 1.2, sig);
+    x += sp * 2.8;
+  }
+  const geo = [];
+  items.forEach((it, k) => {
+    if (it.sig) {
+      out += sigSvg(x + sp * 1.2, it.sig);
+      x += sp * 2.8;
+    }
+    const w = sp * (2.6 + Math.min(it.beats, 4) * 2.1);
+    const cx = x + sp * 1.9;
+    geo.push(cx);
+    let g = '';
+    if (it.rest) {
+      const rw = sp * 1.2;
+      if (it.beats >= 4) g += `<rect x="${cx - rw / 2}" y="${top + sp}" width="${rw}" height="${sp * 0.55}" class="fill-ink"/>`;
+      else if (it.beats >= 2) g += `<rect x="${cx - rw / 2}" y="${top + sp * 1.45}" width="${rw}" height="${sp * 0.55}" class="fill-ink"/>`;
+      else if (it.beats <= 0.5) {
+        const y = top + sp * 1.6;
+        g += `<circle cx="${cx - sp * 0.35}" cy="${y}" r="${sp * 0.3}" class="fill-ink"/><path d="M${cx - sp * 0.35} ${y + sp * 0.15} Q${cx + sp * 0.2} ${y + sp * 0.3} ${cx + sp * 0.5} ${y - sp * 0.25} L${cx - sp * 0.15} ${y + sp * 1.9}" class="ink" fill="none"/>`;
+      } else g += `<text x="${cx}" y="${top + sp * 3.1}" font-size="${sp * 3.6}" text-anchor="middle" class="rest-glyph ink-fill">𝄽</text>`;
+    } else {
+      const st = stepOf(it);
+      const cy = yStep(st);
+      const ledger = (s2) => `<line x1="${cx - sp * 1.1}" y1="${yStep(s2)}" x2="${cx + sp * 1.1}" y2="${yStep(s2)}" class="ink thin"/>`;
+      for (let s2 = -2; s2 >= st; s2 -= 2) g += ledger(s2);
+      for (let s2 = 10; s2 <= st; s2 += 2) g += ledger(s2);
+      const { alter } = parseNote(it.note);
+      if (alter && !it.held) g += `<text x="${cx - sp * 1.6}" y="${cy + sp * 0.7}" font-size="${sp * 2.6}" text-anchor="middle" class="clef ink-fill">${alter > 0 ? '♯' : '♭'}</text>`;
+      const value = VALUE_NAME(it.beats);
+      if (beamOf[k]) {
+        const s = stem[k];
+        const sx = s.up ? cx + sp * 0.68 - 1 : cx - sp * 0.68 + 1;
+        g += `<ellipse cx="${cx}" cy="${cy}" rx="${sp * 0.68}" ry="${sp * 0.48}" class="ink head-g" transform="rotate(-20 ${cx} ${cy})"/>`;
+        g += `<line x1="${sx}" y1="${cy}" x2="${sx}" y2="${yStep(s.end)}" class="ink rd-stem"/>`;
+      } else g += noteSymbol(cx, cy, sp, value, st >= 4);
+      if (DOTTED(it.beats)) g += `<circle cx="${cx + sp * 1.15}" cy="${cy + (st % 2 === 0 ? -sp / 2 : 0)}" r="${sp * 0.2}" class="fill-ink"/>`;
+      if (it.state === 'current') g = `<rect x="${cx - sp * 1.7}" y="3" width="${sp * 3.4}" height="${height - 6}" rx="10" class="drill-hl"/>` + g;
+    }
+    if (it.fermata) {
+      const ny = it.rest ? top : Math.min(yStep(stepOf(it)), stem[k]?.up ? yStep(stem[k].end) : yStep(stepOf(it)));
+      const fy = Math.min(top - sp * 0.6, ny - sp * 0.9);
+      const r = sp * 0.8;
+      g += `<path d="M${cx - r} ${fy} A${r} ${r} 0 0 1 ${cx + r} ${fy}" class="ink" fill="none"/><circle cx="${cx}" cy="${fy - sp * 0.25}" r="${sp * 0.17}" class="fill-ink"/>`;
+    }
+    const label = it.label ? `<text x="${cx}" y="${labelY}" text-anchor="middle" class="rd-label">${it.label}</text>` : '';
+    out += `<g class="rd-note ${it.state || ''} ${it.rest ? 'rest' : ''}">${g}${label}</g>`;
+    x += w;
+    if (it.bar) {
+      if (it.bar === 'final') out += `<path d="M${x} ${top} V${bottom}" class="ink thin"/><rect x="${x + 4}" y="${top}" width="4" height="${sp * 4}" class="fill-ink"/>`;
+      else if (it.bar === 'double') out += `<path d="M${x} ${top} V${bottom} M${x + 4} ${top} V${bottom}" class="ink thin"/>`;
+      else out += `<path d="M${x} ${top} V${bottom}" class="ink thin"/>`;
+      x += sp * 1.4;
+    }
+  });
+  // Kirişler
+  seen.clear();
+  beamOf.forEach((g) => {
+    if (!g || seen.has(g)) return;
+    seen.add(g);
+    const a = g[0];
+    const b = g[g.length - 1];
+    const sx = (k) => (stem[k].up ? geo[k] + sp * 0.68 - 1 : geo[k] - sp * 0.68 + 1);
+    const t = sp * 0.5 * (stem[a].up ? 1 : -1);
+    const [x1, y1, x2, y2] = [sx(a), yStep(stem[a].end), sx(b), yStep(stem[b].end)];
+    out += `<path d="M${x1 - 0.6} ${y1} L${x2 + 0.6} ${y2} L${x2 + 0.6} ${y2 + t} L${x1 - 0.6} ${y1 + t} Z" class="rd-beam"/>`;
+  });
+  // Bağlar: sap yönünün tersinde yay
+  items.forEach((it, k) => {
+    const nx = items[k + 1];
+    if (!it.tie || !nx || nx.note !== it.note) return;
+    const st = stepOf(it);
+    const over = st >= 4;
+    const y = yStep(st) + (over ? -sp * 0.8 : sp * 0.8);
+    const a = geo[k] + sp * 0.7;
+    const b2 = geo[k + 1] - sp * 0.7;
+    out += `<path d="M${a} ${y} Q${(a + b2) / 2} ${y + (over ? -sp : sp)} ${b2} ${y}" class="ink tie" fill="none"/>`;
+  });
+  const w = x + sp * 1.2;
+  let head = '';
+  for (let i = 0; i < 5; i++) head += `<line x1="4" y1="${top + i * sp}" x2="${w - 4}" y2="${top + i * sp}" class="ink thin"/>`;
+  head +=
+    clef === 'bass'
+      ? `<text x="${sp * 0.6}" y="${top + sp * 2.95}" font-size="${sp * 3.6}" class="clef ink-fill">𝄢</text>`
+      : `<text x="${sp * 0.5}" y="${bottom + sp * 1.05}" font-size="${sp * 6.6}" class="clef ink-fill">𝄞</text>`;
+  return `<svg class="rd-staff-svg" viewBox="0 0 ${w} ${height}" role="img" aria-label="Ritimli porte">${head}${out}</svg>`;
+}
+
 /** Konu anlatımındaki resim */
 function introVisual(v) {
   if (!v) return '';
@@ -195,7 +363,8 @@ export class ReadingGame {
   /** Bütün notalar (klavye aralığı ve nota adı düğmeleri için) */
   allNotes() {
     const s = this.set;
-    if (s.mode === 'line') return s.rows.flatMap((r) => (typeof r === 'string' ? r : `${r.notes} ${r.partner || ''}`).trim().split(/\s+/));
+    if (s.mode === 'line')
+      return s.rows.flatMap((r) => (r.seq ? parseSeq(r.seq).filter((it) => !it.rest).map((it) => it.note) : (typeof r === 'string' ? r : `${r.notes} ${r.partner || ''}`).trim().split(/\s+/)));
     if (s.mode === 'find') return [];
     return Object.values(s.pools || { [s.clef]: s.pool }).flat();
   }
@@ -232,7 +401,7 @@ export class ReadingGame {
           <button class="btn primary" data-act="start">▶ Başla</button>
           <button class="btn ghost" data-act="reset">↺ Baştan</button>
         </div>
-        <div class="rd-stage card ${s.mode === 'line' && Math.max(...s.rows.map((r) => (typeof r === 'string' ? r : r.notes).split(/\s+/).length)) > 8 ? 'wide' : ''}">
+        <div class="rd-stage card ${s.mode === 'line' && (s.rhythm || Math.max(...s.rows.map((r) => (typeof r === 'string' ? r : r.notes).split(/\s+/).length)) > 8) ? 'wide' : ''}">
           <div class="rd-board"></div>
           <div class="rd-side">
             <div class="rd-progress"><b class="rd-count"></b><span class="rd-score muted"></span></div>
@@ -343,7 +512,10 @@ export class ReadingGame {
       return qs;
     }
     if (s.mode === 'line') {
+      this.rowItems = s.rows.map((r) => (r.seq ? parseSeq(r.seq) : null));
       return s.rows.flatMap((r, row) => {
+        // Ritimli satır: suslar ve bağla uzayan notalar sorulmaz; col öğenin satırdaki yeri
+        if (r.seq) return this.rowItems[row].flatMap((it, col) => (it.rest || it.held ? [] : [{ note: it.note, clef: r.clef || 'treble', row, col }]));
         const { clef, notes, fingers, partner, partnerFingers, partnerClef } = typeof r === 'string' ? { clef: s.clef, notes: r } : r;
         const partners = partner?.split(/\s+/);
         return notes.split(/\s+/).map((note, col) => ({ note, clef, row, col, finger: fingers?.[col], partner: partners?.[col], partnerFinger: partnerFingers?.[col], partnerClef }));
@@ -416,6 +588,24 @@ export class ReadingGame {
       const stateOf = (idx) => (idx === this.i && this.running ? 'current' : this.results[idx] === 'ok' ? 'ok' : this.results[idx] === 'retry' ? 'wrong' : '');
       const nameOf = (n, idx) => (this.hintNames || (this.results[idx] && idx < this.i) ? noteLabel(n) : '');
       notes = row.map((x, k) => ({ note: x.note, state: stateOf(base + k), label: nameOf(x.note, base + k), finger: x.finger }));
+      const items = this.rowItems?.[q.row];
+      if (items) {
+        // Ritimli satır: her öğenin durumu sorusundan; bağla uzayan nota öncekinin durumunu alır
+        const byCol = new Map(row.map((x, k) => [x.col, k]));
+        let last = null;
+        const shown = items.map((it, col) => {
+          if (it.rest) return { ...it };
+          const k = byCol.get(col);
+          const d = k == null ? last : { state: stateOf(base + k), label: nameOf(it.note, base + k) };
+          last = d;
+          return { ...it, ...(d || {}), label: k == null ? '' : d.label };
+        });
+        if (q.row === this.rowItems.length - 1 && shown.at(-1).bar) shown[shown.length - 1] = { ...shown.at(-1), bar: 'final' };
+        board.innerHTML = rhythmStaff({ clef, items: shown, sp: 12, sig: q.row === 0 ? this.set.sig : null });
+        const rows = this.rowItems.length;
+        board.insertAdjacentHTML('afterbegin', `<div class="rd-row-tag muted">${q.row + 1}. satır / ${rows}</div>`);
+        return;
+      }
       if (q.partner) {
         // İki el: sağ el üstte, sol el altta (fa anahtarı; tiz oktavda sol anahtarı), notalar hizalı
         const lh = row.map((x, k) => ({ note: x.partner, state: stateOf(base + k), label: nameOf(x.partner, base + k), finger: x.partnerFinger }));
@@ -685,7 +875,7 @@ export class ReadingGame {
     this.draw();
     // Gamlarda hız ve düzgünlük: doğru notalar arasındaki süreler
     let pace = '';
-    if (this.set.metronome && this.hits?.length > 4) {
+    if (this.set.metronome && this.set.examBpm && this.hits?.length > 4) {
       const gaps = this.hits.slice(1).map((t, k) => t - this.hits[k]);
       const mean = gaps.reduce((x, y) => x + y, 0) / gaps.length;
       const sd = Math.sqrt(gaps.reduce((x, g) => x + (g - mean) ** 2, 0) / gaps.length);
